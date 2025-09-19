@@ -1,4 +1,4 @@
-import { _decorator, Component, Node, Vec2, Vec3, Input, input, EventTouch, UITransform } from 'cc';
+import { _decorator, Component, Node, Vec2, Vec3, Input, input, EventTouch, UITransform, Button } from 'cc';
 import { EventManager } from './Common/Event/EventCenter';
 import { Constant } from './Constant';
 import { GameManager } from './GameManager';
@@ -48,6 +48,7 @@ export class InputManager extends Component {
     private isMoving: boolean = false; // 是否正在移动
     // 单例模式
     public static instance: InputManager;
+
     onLoad() {
         InputManager.instance = this; // 单例模式
         // 监听触摸事件
@@ -79,11 +80,8 @@ export class InputManager extends Component {
     update(deltaTime: number) {
         if (this.cd_ShowGuide) {
             this.hideTime += deltaTime;
-            if (this.hideTime > this.waitTime && this.isOver) {
-                EventManager.emit(Constant.EVENT_TYPE.CHANGE_GUIDE, true);
-                console.log('打开引导UI');
-                this.cd_ShowGuide = false;        // 设置为false，表示打开引导UI
-                this.hideTime = 0;
+            if (this.hideTime > this.waitTime && !this.isOver) {
+                this.showGuide();
             }
         }
     }
@@ -304,14 +302,22 @@ export class InputManager extends Component {
         }, 0.5);
     }
 
-    // 隐藏引导
+    /** 显示引导 */
+    private showGuide() {
+        EventManager.emit(Constant.EVENT_TYPE.CHANGE_GUIDE, true);
+        console.log('打开引导UI');
+        this.cd_ShowGuide = false;        // 设置为false，表示打开引导UI
+        this.hideTime = 0;
+    }
+
+    /** 隐藏引导 */
     private hideGuide() {
         EventManager.emit(Constant.EVENT_TYPE.CHANGE_GUIDE, false);     // 显示引导
         this.cd_ShowGuide = true;
         this.hideTime = 0;
     }
 
-    // 开始监听
+    /** 开始监听全局触摸事件 */
     public startListening() {
         input.on(Input.EventType.TOUCH_START, this.onTouchStart, this);
         input.on(Input.EventType.TOUCH_MOVE, this.onTouchMove, this);
@@ -319,7 +325,7 @@ export class InputManager extends Component {
         input.on(Input.EventType.TOUCH_END, this.onTouchEnd, this);
     }
 
-    // 取消监听
+    /** 取消监听全局触摸事件 */
     public cancelListening() {
         input.off(Input.EventType.TOUCH_START, this.onTouchStart, this);
         input.off(Input.EventType.TOUCH_MOVE, this.onTouchMove, this);
