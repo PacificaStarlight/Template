@@ -19,8 +19,6 @@ export class CameraController extends Component {
     // @property(Node)
     private endMoveNode1: Node = null; // 结束运动节点1
 
-    private isLandscape: boolean = false; // 是否是横屏
-
     public static instance: CameraController = null; // 单例
     onLoad() {
         CameraController.instance = this;
@@ -35,31 +33,23 @@ export class CameraController extends Component {
                 this.mainCamera = cameraNode.getComponent(Camera);
             }
         }
-        view.on('canvas-resize', this.lockEndPos, this);
-        // 判断当前是横屏还是竖屏
-        if (view.getVisibleSize().width > view.getVisibleSize().height) {
-            console.log('当前是横屏');
-            this.isLandscape = true;
-        }
-        else {
-            console.log('当前是竖屏');
-            this.isLandscape = false;
-        }
-    }
-
-    onDestroy() {
-        // 移除监听
-        view.off('canvas-resize', this.lockEndPos, this);
     }
 
     start() {
-        this.moveCamera(0.5, 1.5); // 镜头运动
+        let stopDelay = 0.5;
+        let duration = 1.5;
+        InputManager.instance.startAnim(stopDelay, duration); // 开始动画
+        this.mainCamera.node.setPosition(this.startMoveNode.position);
+        this.UI_LayoutTop.setPosition(this.startMoveNode.position);
+        this.moveCamera(stopDelay, duration); // 镜头运动
     }
 
     /** 锁定结束位置 */
-    private lockEndPos() {
+    public lockEndPos() {
         if (this.endMoveNode) {
-            this.mainCamera.node.setPosition(this.endMoveNode.position);
+            this.scheduleOnce(() => {
+                this.mainCamera.node.setPosition(this.endMoveNode.position);
+            }, 0.2); // 延迟0.2秒执行
         }
     }
 
@@ -69,21 +59,12 @@ export class CameraController extends Component {
      */
     public moveCamera(stopDelay: number = 1, duration: number = 1) {
         console.log('镜头运动');
-        InputManager.instance.startAnim(stopDelay, duration); // 开始动画
-        this.mainCamera.node.setPosition(this.startMoveNode.position);
-        this.UI_LayoutTop.setPosition(this.startMoveNode.position);
         Tween.stopAllByTarget(this.mainCamera.node);
-
         tween(this.mainCamera.node)
             .delay(stopDelay)
             .to(duration, { position: this.endMoveNode.position })
             .call(() => {
                 console.log('镜头运动结束');
-                // if (this.isLandscape) {
-                //     tween(this.mainCamera.node)
-                //         .to(0.4, { position: this.endMoveNode1.position })
-                //         .start();
-                // }
             })
             .start();
         tween(this.UI_LayoutTop)
@@ -91,11 +72,6 @@ export class CameraController extends Component {
             .to(duration, { position: this.endMoveNode.position })
             .call(() => {
                 console.log('UI_LayoutTop运动结束');
-                // if (this.isLandscape) {
-                //     tween(this.UI_LayoutTop)
-                //         .to(0.4, { position: this.endMoveNode1.position })
-                //         .start();
-                // }
             })
             .start();
     }

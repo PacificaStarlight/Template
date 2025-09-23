@@ -4,7 +4,6 @@ import { EventManager } from './Common/Event/EventCenter';
 import { Constant } from './Constant';
 import { SDKManager } from './Utils/SDK/SDKManager';
 import { AudioManager } from './Common/Audio/AudioManager';
-import { AnimManager } from './Common/Animation/AnimManager';
 
 const { ccclass, property } = _decorator;
 
@@ -18,7 +17,7 @@ export class UIManager extends Component {
     public UI_GuidePopUp: Node = null;
 
     @property(Node)
-    private failNode: Node = null;
+    public failNode: Node = null;
     @property(Node)
     private successNode: Node = null;
 
@@ -78,6 +77,7 @@ export class UIManager extends Component {
         this.hideGuide();
         GameManager.instance.isGameOver = true;
         // this.UI_EndBanner.active = true;
+        this.successNode.active = true;
         if (isWin) {
             AudioManager.playOneShot(Constant.AUDIO_TYPE.SUCCESS_SFX); // 播放胜利音效
         }
