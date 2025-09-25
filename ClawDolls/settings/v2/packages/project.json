@@ -6,5 +6,23 @@
       "height": 1440
     }
   },
-  "custom_joint_texture_layouts": []
+  "custom_joint_texture_layouts": [],
+  "physics": {
+    "collisionGroups": [
+      {
+        "index": 1,
+        "name": "Props"
+      },
+      {
+        "index": 2,
+        "name": "Bobble"
+      }
+    ],
+    "collisionMatrix": {
+      "0": 5,
+      "1": 6,
+      "2": 11,
+      "3": 4
+    }
+  }
 }

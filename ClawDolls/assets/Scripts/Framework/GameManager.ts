@@ -2,6 +2,8 @@ import { _decorator, Component, Node, macro, director, AudioClip, Enum, view } f
 import { StateController } from './Utils/UIcontrol/StateController';
 import { Constant } from './Constant';
 import { CameraController } from './Utils/ComponentController/CameraController';
+import { InputManager } from './InputManager';
+import { EventManager } from './Common/Event/EventCenter';
 
 const { ccclass, property } = _decorator;
 

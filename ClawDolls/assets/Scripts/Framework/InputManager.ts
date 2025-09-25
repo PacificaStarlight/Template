@@ -1,4 +1,4 @@
-import { _decorator, Component, Node, Vec2, Vec3, Input, input, EventTouch, UITransform, Button, tween, Size, sp, Collider2D, Contact2DType, PolygonCollider2D, view, ITriggerEvent, CircleCollider2D, } from 'cc';
+import { _decorator, Component, Node, Vec2, Vec3, Input, input, EventTouch, UITransform, Button, tween, Size, sp, Collider2D, Contact2DType, PolygonCollider2D, view, ITriggerEvent, CircleCollider2D, instantiate, RigidBody2D, } from 'cc';
 import { EventManager } from './Common/Event/EventCenter';
 import { Constant, PLAYER_STATE } from './Constant';
 import { GameManager } from './GameManager';
@@ -6,6 +6,7 @@ import { SDKManager } from './Utils/SDK/SDKManager';
 import { AudioManager } from './Common/Audio/AudioManager';
 import { CameraController } from './Utils/ComponentController/CameraController';
 import { UIManager } from './UIManager';
+import { Tools } from './Utils/Tools';
 const { ccclass, property } = _decorator;
 const tempV2 = new Vec2();
 const tempV3 = new Vec3();
@@ -17,22 +18,24 @@ export class InputManager extends Component {
     private claw: Node = null;  // 爪子
     @property(Node)
     private claw_Spine: Node = null;
+    @property(Node)
+    private boardBg: Node = null;
 
     @property(Button)
     private btnStart: Button = null; // 开始按钮
 
-    @property(Node)
-    private moveNode: Node = null; // 移动节点
+    @property([Node])
+    private scrollViewList: Node[] = []; // 
 
     private chooseIndex = 0;
     private waitTime: number = 5; // 等待时间
     private hideTime: number = 0; // 隐藏时间
     private ropeLength = 3130;
 
-    private minH: number = 260;
-    private maxH: number = 460;
-    private minV: number = 630;
-    private maxV: number = 810;
+    private minX: number = 0;
+    private maxX: number = 0;
+    private countNum: number = 4; // 计数器
+    private force = 0; // 力度
 
     private touchStartPos: Vec2 = null; // 记录触摸开始位置
     private startPos: Vec3 = null; // 记录触摸开始位置
@@ -45,9 +48,11 @@ export class InputManager extends Component {
     private isFirstTouch: boolean = true; // 是否是第一次触摸
     private isOver: boolean = false; // 是否结束
     private isMoving: boolean = false; // 是否正在移动
+    private isPopUp: boolean = false;
     private isHadProtect: boolean = false; // 是否有保护
     private isLeft: boolean = false;    // 是否是向左
     private isRight: boolean = false;   // 是否是向右
+    private isRestart: boolean = false; // 是否是重新开始
 
     private swingSpeed: number = 1.5;
     private maxAngle: number = 2;
@@ -61,17 +66,18 @@ export class InputManager extends Component {
     private gameCameraSpeedH: number = 3;
     private gameCameraSpeedV: number = 2.7;
 
-    private isPopUp: boolean = false;
+
     private otherNode: Node = null; // 其他节点
     private colliderNode: Node = null; // 碰撞节点
+    private triggeredObjects: Set<Node> = new Set(); // 触发对象集合
+
+
 
     private ropeState: PLAYER_STATE = PLAYER_STATE.NONE; // 状态
     // 单例模式
     public static instance: InputManager;
     onLoad() {
         InputManager.instance = this; // 单例模式
-        // // 监听触摸事件
-        // this.startListening();
         EventManager.on(Constant.EVENT_TYPE.INIT_BLOCKS, this.initBlocks, this);
     }
 
@@ -82,6 +88,7 @@ export class InputManager extends Component {
         this.btnStart.interactable = false; // 设置按钮不可交互
         let claw = this.claw.getComponent(PolygonCollider2D); // 获取爪子组件
         claw.on(Contact2DType.BEGIN_CONTACT, this.onClawCatch, this);
+        this.initBlocks();
     }
 
     onDisable() {
@@ -91,7 +98,20 @@ export class InputManager extends Component {
 
     // 初始化块
     public initBlocks() {
-
+        console.log(this.scrollViewList); // 打印所有块
+        let bound = Tools.getImageRange(this.boardBg); // 获取节点在屏幕上的范围
+        if (this.claw.children[1] != null) {
+            let block = this.claw.children[1].getComponent(UITransform);
+            console.log(bound);
+            console.log(block);
+            this.minX = bound.left + block.width / 2;
+            this.maxX = bound.right - block.width / 2;
+        }
+        else {
+            console.log(bound);
+            this.minX = bound.left + 60;
+            this.maxX = bound.right - 60;
+        }
     }
 
     update(deltaTime: number) {
@@ -103,17 +123,20 @@ export class InputManager extends Component {
         }
         if (this.ropeState == PLAYER_STATE.STOP) return;
 
+        /** 摆动 */
         if (this.ropeState == PLAYER_STATE.IDLE) {
             // 使用正弦函数实现平滑摆动
             this.timer += deltaTime;
             this.rope.angle = Math.sin(this.timer * this.swingSpeed) * this.maxAngle;
         }
 
+        /** 下降 */
         if (this.ropeState == PLAYER_STATE.FALLING) {
             this.rope.getComponent(UITransform).height += 4;
             this.claw.position = new Vec3(this.claw.position.x, this.claw.position.y - 4, 0);
         }
 
+        /** 弹起 */
         if (this.ropeState == PLAYER_STATE.UP) {
             this.resetTime += deltaTime;
             if (this.resetTime <= 1) {
@@ -148,45 +171,10 @@ export class InputManager extends Component {
                 this.ropeState = PLAYER_STATE.STOP;
                 this.gameOver(true);
             }
-            if (this.isLeft) {
-                this.rotateClaw(-6);
-            }
-            if (this.isRight) {
-                this.rotateClaw(6);
-            }
-        }
-    }
-
-    /** 抓到物体 */
-    private onClawCatch(self: Collider2D, other: Collider2D) {
-        // console.log('抓到-----------------------------------------------------');
-        console.log(self.name, other.name);
-        // AudioManager.play('catch');
-        this.ropeState = PLAYER_STATE.STOP; // 设置状态为停止
-        let offsetX = self.node.worldPosition.x - other.node.worldPosition.x;
-        if (Math.abs(offsetX) > 12) {
-            console.log('没有抓到物体' + offsetX);
-            this.scheduleOnce(() => {
-                this.claw.angle = 0; // 设置爪子角度为0
-                this.ropeState = PLAYER_STATE.UP; // 设置状态为下落
-            }, 0.5);  // 设置状态为下落
-        }
-        else {
-            console.log('抓到物体' + offsetX);
-            this.otherNode = other.node;
-            tween(this.claw.children[0])
-                .to(0.2, { angle: 0 }) // 旋转到0度
-                .start();
-            tween(this.claw.children[2])
-                .to(0.2, { angle: 0 }) // 旋转到0度
-                .start();
-            this.scheduleOnce(() => {
-                this.claw.angle = 0; // 设置爪子角度为0
-                other.node.setParent(this.claw.children[1]); // 设置物体为爪子的子节点
-                other.node.setPosition(0, 0); // 设置物体位置为0,0
-                this.btnStart.interactable = false; // 设置按钮不可交互
-                this.onReady(); // 准备阶段
-            }, 0.1); // 设置状态为下落
+            if (this.isLeft)
+                this.rotateClaw(3); // 调用旋转爪子的方法
+            if (this.isRight)
+                this.rotateClaw(-3); // 调用旋转爪子的方法
         }
     }
 
@@ -204,7 +192,6 @@ export class InputManager extends Component {
                 });
             })
             .start();
-
 
         let ropeHeight = this.rope.getComponent(UITransform).height + this.ropeLength;  // 计算绳子的高度
         let clawHight = this.claw.position.clone().y - this.ropeLength; // 记录爪子的高度
@@ -231,15 +218,14 @@ export class InputManager extends Component {
         tween(this.claw)
             .delay(stopDelay)
             .to(duration, { position: new Vec3(this.claw.position.x, this.tempPostion) }, { easing: 'quadInOut' })
-            .delay(stopDelay)
+            .delay(1)
             .call(() => {
-                this.ropeState = PLAYER_STATE.IDLE; // 设置状态为摇摆
                 this.btnStart.interactable = true; // 设置按钮可交互
                 this.otherNode = null;
                 let claw = this.claw.getComponent(PolygonCollider2D); // 获取爪子组件
                 claw.on(Contact2DType.BEGIN_CONTACT, this.onClawCatch, this); // 监听碰撞事件
-                console.log('摇摆');
-                UIManager.instance.failNode.active = false;
+                this.ropeState = PLAYER_STATE.IDLE; // 设置状态为摇摆
+                this.timer = 0;
             })
             .start();
     }
@@ -258,8 +244,6 @@ export class InputManager extends Component {
             .to(0.3, { position: new Vec3(this.claw.position.x, this.tempPostion + 100) })
             .start();
 
-        console.log(' 爪子世界位置 ' + this.claw.worldPosition);
-        console.log(' 摄像机世界位置 ' + CameraController.instance.mainCamera.node.worldPosition);
         let camera = CameraController.instance.mainCamera.node;
         let layoutTop = CameraController.instance.UI_LayoutTop; // 获取UI布局节点
         let offest = this.claw.worldPosition.clone().y - camera.worldPosition.y;
@@ -271,8 +255,8 @@ export class InputManager extends Component {
                     camera.worldPosition.z)
             })  // 设置摄像机位置为爪子位置
             .call(() => {
-                console.log('摄像机位置 ' + camera.worldPosition);
                 UIManager.instance.UI_GuidePopUp.active = true; // 显示引导
+                this.startListening(); // 开始监听触摸事件
                 this.isPopUp = true; // 设置引导状态
             })
             .start();
@@ -282,32 +266,110 @@ export class InputManager extends Component {
                 worldPosition: new Vec3(layoutTop.worldPosition.x, layoutTop.worldPosition.y + offest, layoutTop.worldPosition.z)
             })
             .start();
-
-
-        this.startListening(); // 开始监听触摸事件
-        this.claw.getComponent(PolygonCollider2D).off(Contact2DType.BEGIN_CONTACT, this.onClawCatch, this);
     }
 
     /** 开始监听触摸事件 */
     public onBtnStart() {
         console.log('开始游戏');
+        this.hideGuide(); // 隐藏引导
         this.btnStart.interactable = false;
         this.ropeState = PLAYER_STATE.FALLING; // 设置状态为下落
+        this.initBlocks(); // 初始化方块
+        this.isRestart = false; // 重置状态
     }
 
-    /** 触发事件 */
-    private onColliderTouch(self: Collider2D, other: Collider2D) {
-        // console.log(self.name + " " + other.name); // 打印碰撞信息
+    /** 碰撞监听：抓到物体 */
+    private onClawCatch(self: Collider2D, other: Collider2D) {
+        // console.log('抓到-----------------------------------------------------');
+        console.log(self.name, other.name);
+        // AudioManager.play('catch');
+        this.ropeState = PLAYER_STATE.STOP; // 设置状态为停止
+        let offsetX = self.node.worldPosition.x - other.node.worldPosition.x;
+        if (Math.abs(offsetX) > 12) {
+            console.log('没有抓到物体' + offsetX);
+            this.scheduleOnce(() => {
+                this.claw.angle = 0; // 设置爪子角度为0
+                this.ropeState = PLAYER_STATE.UP; // 设置状态为下落
+            }, 0.5);  // 设置状态为下落
+        }
+        else {
+            console.log('抓到物体' + offsetX);
+            this.otherNode = other.node;
+            this.claw.getComponent(PolygonCollider2D).off(Contact2DType.BEGIN_CONTACT, this.onClawCatch, this);
+            tween(this.claw.children[0])
+                .to(0.2, { angle: 0 }) // 旋转到0度
+                .start();
+            tween(this.claw.children[2])
+                .to(0.2, { angle: 0 }) // 旋转到0度
+                .start();
+            this.scheduleOnce(() => {
+                this.claw.angle = 0; // 设置爪子角度为0
+                other.node.setParent(this.claw.children[1]); // 设置物体为爪子的子节点
+                other.node.setPosition(0, 0); // 设置物体位置为0,0
+                this.btnStart.interactable = false; // 设置按钮不可交互
+                this.onReady(); // 准备阶段
+            }, 0.1); // 设置状态为下落
+        }
+    }
+
+    // 爪子旋转
+    private rotateClaw(dis: number = 3) {
+        // 基于绳子长度动态计算角度因子
+        const ropeHeight = this.rope.getComponent(UITransform).height;
+        // 根据绳子长度计算角度因子，绳子越长，相同滑动距离造成的角度变化越小
+        const angleFactor = 0.02 * (3140 / ropeHeight); // 300为参考长度
+        let rotationAngle = dis * angleFactor;
+        let clawPos = this.claw.children[1].worldPosition;
+
+        this.rope.angle += rotationAngle;
+        if (clawPos.x >= this.minX && clawPos.x <= this.maxX) {
+            this.rope.angle += rotationAngle;
+        }
+        if (clawPos.x >= this.maxX) {
+            let tempDis = (clawPos.x - this.maxX) * angleFactor;
+            this.rope.angle -= tempDis;
+        }
+        if (clawPos.x <= this.minX) {
+            let tempDis = (clawPos.x - this.minX) * angleFactor;
+            this.rope.angle -= tempDis;
+        }
+    }
+
+    /** 触摸事件开始 */
+    private onTriggerTouch(self: Collider2D, other: Collider2D) {
+        // 检查是否已经处理过该碰撞
+        if (this.triggeredObjects.has(other.node)) return;
+        let number = this.claw.children[1].children[0].children[0].children.length;
+        let temp = this.claw.children[1].children[0].children[0].children;// 获取第一个子节点
+        // 标记为已处理
+        // console.log('碰撞开始' + self.name + " " + other.name); // 打印碰撞信息
         if (other.tag == 1) {
             console.log('尖刺');
-            console.log(this.isHadProtect);
+            other.node.getComponent(Collider2D).enabled = false; // 禁用碰撞器
             if (!this.isHadProtect) {
+                this.ropeState = PLAYER_STATE.STOP;
+                this.cancelListening(); // 取消监听触摸事件
                 this.restart();
             } // 重新开始
+            return;
         }
         else if (other.tag == 2) {
             console.log('X2');
 
+            let num = this.countNum * 2;
+            console.log(num);
+            if (num >= number) {
+                num = number;
+            }
+            for (let i = this.countNum - 1; i < num; i++) {
+                temp[i].getComponent(PolygonCollider2D).enabled = true;
+                temp[i].getComponent(RigidBody2D).enabled = true;
+                temp[i].getComponent(RigidBody2D).wakeUp(); // 激活刚体
+                this.scheduleOnce(() => {
+                    temp[i].active = true;
+                });
+            }
+            this.countNum = num;
         }
         else if (other.tag == 3) {
             console.log('/2');
@@ -316,8 +378,9 @@ export class InputManager extends Component {
         else if (other.tag == 4) {
             console.log('伤害');
             console.log(this.isHadProtect);
-            // this.ropeState = PLAYER_STATE.STOP; // 设置状态为停止
             if (!this.isHadProtect) {
+                this.ropeState = PLAYER_STATE.STOP;
+                this.cancelListening(); // 取消监听触摸事件
                 this.restart();
             } // 重新开始
         }
@@ -335,24 +398,31 @@ export class InputManager extends Component {
         }
         else if (other.tag == 8) {
             console.log('围栏');
-            // this.ropeState = PLAYER_STATE.STOP; // 设置状态为停止
             let distance = self.node.worldPosition.x - other.node.worldPosition.x; // 计算距离
-            if (Math.abs(distance) < 25) {
+
+            if (!this.isHadProtect) {
                 console.log('被撞碎了');
+                this.ropeState = PLAYER_STATE.STOP; // 设置状态为停止
                 this.restart();
-            }
-            else {
-                console.log('必须向左或者向右离开碰撞范围');
-                if (distance < 0) {
-                    console.log('向左');
-                    this.isLeft = true;
-                    this.isRight = false;
-                }
-                else {
-                    console.log('向右');
-                    this.isLeft = false;
-                    this.isRight = true;
-                }
+                return;
+                // if (Math.abs(distance) < 25) {
+                //     console.log('被撞碎了');
+                //     this.ropeState = PLAYER_STATE.STOP; // 设置状态为停止
+                //     this.restart();
+                // }
+                // else {
+                //     console.log('必须向左或者向右离开碰撞范围');
+                //     if (distance < 0) {
+                //         console.log('向左');
+                //         this.isLeft = true;
+                //         this.isRight = false;
+                //     }
+                //     else {
+                //         console.log('向右');
+                //         this.isLeft = false;
+                //         this.isRight = true;
+                //     }
+                // }
             }
         }
         else if (other.tag == 9) {
@@ -361,13 +431,16 @@ export class InputManager extends Component {
         else if (other.tag == 10) {
             console.log('X10');
         }
+        this.triggeredObjects.add(other.node); // 添加到已处理列表
     }
 
-    private onColliderEnd(self: Collider2D, other: Collider2D) {
-        console.log(self.name + " " + other.name);
+    /** 触摸事件结束 */
+    private onTriggerEnd(self: Collider2D, other: Collider2D) {
+        // console.log(self.name + " " + other.name);
         if (other.tag == 1 || other.tag == 4) {
-            this.isHadProtect = false; // 取消护盾状态
+            this.isHadProtect = false; // 取消护盾状态 
         }
+        other.node.getComponent(Collider2D).enabled = true; // 启用碰撞器
         this.isLeft = false;
         this.isRight = false;
     }
@@ -375,49 +448,34 @@ export class InputManager extends Component {
     /** 重新开始游戏 */
     private restart() {
         console.log('重新开始');
-        this.ropeState = PLAYER_STATE.STOP;
+        if (this.isRestart) return;
+        this.isRestart = true;
+        this.cancelListening(); // 取消监听触摸事件
+        this.triggeredObjects.clear(); // 清空碰撞对象
+
         UIManager.instance.failNode.active = true;
-        tween(this.rope)
-            .call(() => {
-                this.claw.children[1].children[0].destroy(); // 销毁物体
-                this.moveClaw(0.5, 0.5);
-                CameraController.instance.moveCamera(0.5, 0.5);
-                this.isLeft = false;
-                this.isRight = false;
+        this.scheduleOnce(() => {
+            UIManager.instance.failNode.active = false;
+        }, 0.5);
 
-            })
-            .to(0.5, { angle: 0 })
-            .start();
-    }
+        this.scheduleOnce(() => {
 
-    // 爪子旋转
-    private rotateClaw(dis: number = 3) {
-        // 设定一个转换系数，比如每10像素对应1度旋转
-        const angleFactor = 0.02; // 调整这个值来改变灵敏度
-        const rotationAngle = dis * angleFactor;
-        let clawPos = this.claw.children[1].worldPosition;
-        if (!GameManager.instance.isLandscape) {
-            if (clawPos.x >= this.minH && clawPos.x <= this.maxH) {
-                this.rope.angle += rotationAngle;
-            }
-            if (clawPos.x >= this.maxH) {
-                this.rope.angle -= rotationAngle;
-            }
-            if (clawPos.x <= this.minH) {
-                this.rope.angle -= rotationAngle;
-            }
-        }
-        else {
-            if (clawPos.x >= this.minV && clawPos.x <= this.maxV) {
-                this.rope.angle += rotationAngle;
-            }
-            if (clawPos.x >= this.maxV) {
-                this.rope.angle -= rotationAngle;
-            }
-            if (clawPos.x <= this.minV) {
-                this.rope.angle -= rotationAngle;
-            }
-        }
+        }, 1);
+
+        this.scheduleOnce(() => {
+            tween(this.rope)
+                .to(0.5, { angle: 0 })
+                .call(() => {
+                    if (this.claw.children[1].children[0] != null) {
+                        this.claw.children[1].destroyAllChildren(); // 销毁物体
+                    }
+                    this.moveClaw(0.5, 0.5);
+                    CameraController.instance.moveCamera(0.5, 0.5);
+                    this.isLeft = false;
+                    this.isRight = false;
+                })
+                .start();
+        }, 1.5);
     }
 
     // 触摸开始事件
@@ -425,18 +483,10 @@ export class InputManager extends Component {
         // console.log('开始触摸');
         this.touchStartPos = event.getLocation();
         this.hideTime = 0;
-        // let worldPos = event.getUILocation(tempV2);
-        // tempV3.set(worldPos.x, worldPos.y, 0);
-
-        if (this.isPopUp) {
-            this.isPopUp = false;
-            UIManager.instance.UI_GuidePopUp.active = false; // 隐藏引导
-            this.ropeState = PLAYER_STATE.MOVEING; // 设置状态为移动
-            this.otherNode.getComponent(CircleCollider2D).sensor = true; // 设置为传感器
-            this.otherNode.getComponent(CircleCollider2D).on(Contact2DType.BEGIN_CONTACT, this.onColliderTouch, this);
-            this.otherNode.getComponent(CircleCollider2D).on(Contact2DType.END_CONTACT, this.onColliderEnd, this);
-        }
+        let worldPos = event.getUILocation(tempV2);
+        tempV3.set(worldPos.x, worldPos.y, 0);
         this.hideGuide(); // 隐藏引导
+        // this.onStartDrag(); // 开始拖动
     }
 
     // 触摸移动事件
@@ -451,9 +501,19 @@ export class InputManager extends Component {
         let rowDis = movePos.x - startPos.x;
 
         this.rotateClaw(rowDis);
+        if (rowDis > 0) {
+            console.log('向右'); // 向右
+            this.applyInertiaForce(new Vec2(0.1, 0));
+        }
+        else if (rowDis < 0) {
+            console.log('向左'); // 向左
+            this.applyInertiaForce(new Vec2(-0.1, 0));
+        }
 
         this.touchStartPos = event.getLocation(); // 更新触摸起始位置
         this.hideGuide(); // 隐藏引导
+
+        // this.onStartDrag(); // 开始拖动
     }
 
     // 触摸结束事件
@@ -462,10 +522,22 @@ export class InputManager extends Component {
             SDKManager.instance.clickDown();
             return;
         }
-
         let worldPos = event.getUILocation(tempV2);
         tempV3.set(worldPos.x, worldPos.y, 0);
         this.touchStartPos = null;
+
+        if (this.isPopUp) {
+            this.isPopUp = false;
+            UIManager.instance.UI_GuidePopUp.active = false; // 隐藏引导
+            this.ropeState = PLAYER_STATE.MOVEING; // 设置状态为移动
+            // this.otherNode.getComponent(CircleCollider2D).sensor = false; // 设置为传感器
+            // this.otherNode.getComponent(CircleCollider2D).on(Contact2DType.BEGIN_CONTACT, this.onColliderTouch, this);
+            // this.otherNode.getComponent(CircleCollider2D).on(Contact2DType.END_CONTACT, this.onColliderEnd, this);
+            this.otherNode.getComponent(PolygonCollider2D).sensor = true; // 设置为传感器
+            this.otherNode.getComponent(PolygonCollider2D).on(Contact2DType.BEGIN_CONTACT, this.onTriggerTouch, this);
+            this.otherNode.getComponent(PolygonCollider2D).on(Contact2DType.END_CONTACT, this.onTriggerEnd, this);
+        }
+
         // 是否是第一次触摸
         if (this.isFirstTouch) {
             AudioManager.play(Constant.AUDIO_TYPE.BGM); // 播放背景音乐
@@ -477,6 +549,16 @@ export class InputManager extends Component {
             this.cd_ShowGuide = true;
         }
         this.hideTime = 0;
+    }
+
+    /** 对物体施加惯性力 */
+    private applyInertiaForce(force: Vec2 = new Vec2(0, 100)) {
+        let temp = this.claw.children[1].children[0].children[0].children; // 获取物体
+        for (let i = 0; i < temp.length; i++) {
+            const worldPos = temp[i].worldPosition;
+            const impulsePos = new Vec2(worldPos.x, worldPos.y);
+            temp[i].getComponent(RigidBody2D).applyLinearImpulse(force, impulsePos, true); // 施加惯性力
+        }
     }
 
     // 移动成功
