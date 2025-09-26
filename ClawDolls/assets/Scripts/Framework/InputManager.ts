@@ -1,4 +1,4 @@
-import { _decorator, Component, Node, Vec2, Vec3, Input, input, EventTouch, UITransform, Button, tween, Size, sp, Collider2D, Contact2DType, PolygonCollider2D, view, ITriggerEvent, CircleCollider2D, instantiate, RigidBody2D, AnimationComponent, Animation, } from 'cc';
+import { _decorator, Component, Node, Vec2, Vec3, Input, input, EventTouch, UITransform, Button, tween, Size, sp, Collider2D, Contact2DType, PolygonCollider2D, view, ITriggerEvent, CircleCollider2D, instantiate, RigidBody2D, AnimationComponent, Animation, Tween, } from 'cc';
 import { EventManager } from './Common/Event/EventCenter';
 import { Constant, PLAYER_STATE } from './Constant';
 import { GameManager } from './GameManager';
@@ -35,6 +35,10 @@ export class InputManager extends Component {
 
     private minX: number = 0;
     private maxX: number = 0;
+
+    private tempMax: number = 0;
+    private tempMin: number = 0;
+
     private countNum: number = 4; // 计数器
     private force = 0.1; // 力度
 
@@ -171,6 +175,12 @@ export class InputManager extends Component {
                 layoutTop.position = new Vec3(layoutTop.position.x, layoutTop.position.y + speed, 0);
                 let camera = CameraController.instance.mainCamera; // 获取主摄像机
                 camera.node.position = new Vec3(0, camera.node.position.y + speed, camera.node.position.z);
+                if (this.isLeft) {
+                    this.rotateClaw(-6);
+                }
+                if (this.isRight) {
+                    this.rotateClaw(6);
+                }
             }
             else {
                 this.ropeState = PLAYER_STATE.STOP;
@@ -276,6 +286,8 @@ export class InputManager extends Component {
         this.hideGuide(); // 隐藏引导
         this.playBGM(); // 播放背景音乐
         this.btnStart.interactable = false;
+        this.tempMax = this.maxX;
+        this.tempMin = this.minX;
         this.ropeState = PLAYER_STATE.FALLING; // 设置状态为下落
         this.initBlocks(this.boardBg); // 初始化方块
         this.isRestart = false; // 重置状态
@@ -319,29 +331,28 @@ export class InputManager extends Component {
                 other.node.setPosition(0, 0); // 设置物体位置为0,0
                 this.onReady(); // 准备阶段
             }, 0.1); // 设置状态为下落
-
         }
     }
 
     // 爪子旋转
-    private rotateClaw(dis: number) {
+    private rotateClaw(dis: number, maxX = this.maxX, minX = this.minX) {
         // 基于绳子长度动态计算角度因子
         const ropeHeight = this.rope.getComponent(UITransform).height;
         // 根据绳子长度计算角度因子，绳子越长，相同滑动距离造成的角度变化越小
         const angleFactor = 0.02 * (3140 / ropeHeight); // 300为参考长度
         let rotationAngle = dis * 0.3 * angleFactor;
         let clawPos = this.claw.children[1].worldPosition;
-
         this.rope.angle += rotationAngle;
-        if (clawPos.x >= this.minX && clawPos.x <= this.maxX) {
+        if (clawPos.x >= minX && clawPos.x <= maxX) {
             this.rope.angle += rotationAngle;
         }
-        if (clawPos.x >= this.maxX) {
-            let tempDis = (clawPos.x - this.maxX) * angleFactor;
+
+        if (clawPos.x >= maxX) {
+            let tempDis = (clawPos.x - maxX) * angleFactor;
             this.rope.angle -= tempDis;
         }
-        if (clawPos.x <= this.minX) {
-            let tempDis = (clawPos.x - this.minX) * angleFactor;
+        if (clawPos.x <= minX) {
+            let tempDis = (clawPos.x - minX) * angleFactor;
             this.rope.angle -= tempDis;
         }
     }
@@ -352,23 +363,45 @@ export class InputManager extends Component {
         let temp = this.claw.children[1].children[0].children[0].children;// 获取第一个子节点
         // // 检查是否已经处理过该碰撞
         if (this.array.indexOf(other.node) != -1) return;
+        this.array.push(other.node);
         if (other.tag == 8) {
             console.log('围栏');
             let distance = self.node.worldPosition.x - other.node.worldPosition.x; // 计算距离
             // this.ropeState = PLAYER_STATE.STOP; // 设置状态为停止
+
             if (Math.abs(distance) > 25) {
                 if (distance > 0) {
-                    console.log('向右移动');
+                    // console.log('向右移动');
                     this.isLeft = false;
                     this.isRight = true;
                     this.isCanMove = false;
+                    const size = Tools.getImageRange(other.node); // 获取图片范围
+
+                    this.tempMax = this.maxX;
+                    this.tempMin = size.left + 65;
+                    console.log(this.tempMax, this.tempMin);
                 }
                 else {
-                    console.log('向左移动');
+                    // console.log('向左移动');
                     this.isLeft = true;
                     this.isRight = false;
                     this.isCanMove = false;
+                    const size = Tools.getImageRange(other.node); // 获取图片范围
+
+                    this.tempMax = size.right - 65;
+                    this.tempMin = this.minX;
+                    console.log(this.tempMax, this.tempMin);
                 }
+
+                this.scheduleOnce(() => {
+                    this.tempMax = this.maxX;
+                    this.tempMin = this.minX;
+
+                }, 0.7);
+                this.scheduleOnce(() => {
+                    this.isLeft = false;
+                    this.isRight = false;
+                }, 0.1);
             }
             else {
                 if (!this.isHadProtect) {
@@ -384,10 +417,6 @@ export class InputManager extends Component {
                     AudioManager.playOneShot(Constant.AUDIO_TYPE.POS_SFX_SUCCESS);
                 }
             }
-        }
-
-        if (other.tag != 8) {
-            this.array.push(other.node);
         }
 
         // 标记为已处理
@@ -598,21 +627,22 @@ export class InputManager extends Component {
     private onTriggerEnd(self: Collider2D, other: Collider2D) {
         // console.log(self.name + " " + other.name);
         if (other.tag == 8) {
-
-            if (self.node.worldPosition.y - other.node.worldPosition.y > self.node.getComponent(UITransform).height / 2) {
-                // this.ropeState = PLAYER_STATE.STOP; // 停止移动
+            console.log('检测围栏')
+            if (Tools.getImageRange(self.node).bottom > Tools.getImageRange(other.node).top) {
+                this.ropeState = PLAYER_STATE.STOP; // 停止移动
                 console.log('穿过围栏了-----------------------------------------');
-                this.isCanMove = true;
+                this.tempMax = this.maxX;
+                this.tempMin = this.minX;
             }
         }
-        if (other.tag == 1 || other.tag == 4 || other.tag == 8) {
+        if (other.tag == 1 || other.tag == 4) {
             this.isHadProtect = false; // 取消护盾状态
             let image = this.claw.children[1].children[0].children[5];
             image.getComponent(sp.Skeleton).clearTrack(1); // 清除所有轨道
             image.active = false;
         }
-        this.isLeft = false;
-        this.isRight = false;
+        // this.isLeft = false;
+        // this.isRight = false;
         this.initBlocks(this.boardBg);    // ---------------------------------------------------确定新边界
     }
 
@@ -667,6 +697,8 @@ export class InputManager extends Component {
         }, 3);
     }
 
+    private maxangle = 15;
+    private curangle = 0;
     // 触摸开始事件
     private onTouchStart(event: EventTouch) {
         console.log('开始触摸');
@@ -690,12 +722,29 @@ export class InputManager extends Component {
         const movePos = event.getLocation();
         let rowDis = movePos.x - startPos.x;
 
-        this.rotateClaw(rowDis);
+        console.log('rowDis', rowDis);
+        console.log(this.maxX, this.minX);
+        console.log(this.tempMax, this.tempMin);
+        this.rotateClaw(rowDis, this.tempMax, this.tempMin);
         if (rowDis > 0) {
             this.applyInertiaForce(new Vec2(this.force, 0));
+            Tween.stopAllByTarget(this.claw);
+            // this.curangle = 0;
+            this.curangle -= rowDis;
+            if (Math.abs(this.curangle) > this.maxangle) {
+                this.curangle = -this.maxangle;
+            }
+            this.claw.angle = this.curangle;
         }
         else if (rowDis < 0) {
             this.applyInertiaForce(new Vec2(-this.force, 0));
+            Tween.stopAllByTarget(this.claw);
+            // this.curangle = 0;
+            this.curangle -= rowDis;
+            if (Math.abs(this.curangle) > this.maxangle) {
+                this.curangle = this.maxangle;
+            }
+            this.claw.angle = this.curangle;
         }
 
         this.touchStartPos = event.getLocation(); // 更新触摸起始位置
@@ -713,7 +762,10 @@ export class InputManager extends Component {
         let worldPos = event.getUILocation(tempV2);
         tempV3.set(worldPos.x, worldPos.y, 0);
         this.touchStartPos = null;
-
+        this.curangle = 0;
+        tween(this.claw)
+            .to(0.1, { angle: 0 })
+            .start();
         if (this.isPopUp) {
             this.isPopUp = false;
             UIManager.instance.UI_GuidePopUp.active = false; // 隐藏引导
@@ -753,18 +805,6 @@ export class InputManager extends Component {
             }
         }
 
-    }
-
-    // 移动成功
-    private moveSuccess() {
-        // this.curChooseNode.getComponent(Animation).play(); // 播放移动失败动画
-        AudioManager.playOneShot(Constant.AUDIO_TYPE.POS_SFX_SUCCESS); // 播放移动失败音效
-    }
-
-    // 移动失败
-    private moveFailed() {
-        // this.curChooseNode.getComponent(Animation).play(); // 播放移动失败动画
-        AudioManager.playOneShot(Constant.AUDIO_TYPE.NEG_SFX_FAIL); // 播放移动失败音效
     }
 
     /** 游戏结束 */
