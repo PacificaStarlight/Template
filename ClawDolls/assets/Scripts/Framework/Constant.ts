@@ -43,6 +43,7 @@ enum AUDIO_TYPE {
 
     POS_SFX_1 = 'Audios/pos_SFX_1', // 积极反馈音效1
     POS_SFX_SUCCESS = 'Audios/pos_SFX_success', // 积极反馈音效 - 成功
+    POS_SFX_COIN = 'Audios/pos_SFX_coin', // 积极反馈音效 - 金币
 
     NEG_SFX_1 = 'Audios/neg_SFX_1', // 消极反馈音效1
     NEG_SFX_FAIL = 'Audios/neg_SFX_fail',   // 消极反馈音效 - 失败

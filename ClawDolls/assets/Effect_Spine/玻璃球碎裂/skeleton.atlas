@@ -1,0 +1,132 @@
+
+skeleton.png
+size: 457,457
+format: RGBA8888
+filter: Linear,Linear
+repeat: none
+20250924-122413_00000
+  rotate: false
+  xy: 346, 1
+  size: 67, 67
+  orig: 185, 214
+  offset: 59, 134
+  index: -1
+20250924-122413_00002
+  rotate: false
+  xy: 346, 69
+  size: 72, 73
+  orig: 185, 214
+  offset: 57, 131
+  index: -1
+20250924-122413_00004
+  rotate: false
+  xy: 359, 373
+  size: 78, 83
+  orig: 185, 214
+  offset: 54, 125
+  index: -1
+20250924-122413_00006
+  rotate: true
+  xy: 342, 270
+  size: 84, 92
+  orig: 185, 214
+  offset: 50, 116
+  index: -1
+20250924-122413_00008
+  rotate: false
+  xy: 340, 143
+  size: 90, 97
+  orig: 185, 214
+  offset: 47, 108
+  index: -1
+20250924-122413_00010
+  rotate: true
+  xy: 241, 26
+  size: 94, 104
+  orig: 185, 214
+  offset: 46, 98
+  index: -1
+20250924-122413_00012
+  rotate: true
+  xy: 246, 355
+  size: 101, 112
+  orig: 185, 214
+  offset: 42, 84
+  index: -1
+20250924-122413_00014
+  rotate: true
+  xy: 227, 241
+  size: 101, 114
+  orig: 185, 214
+  offset: 41, 75
+  index: -1
+20250924-122413_00016
+  rotate: false
+  xy: 1, 86
+  size: 103, 118
+  orig: 185, 214
+  offset: 41, 61
+  index: -1
+20250924-122413_00018
+  rotate: false
+  xy: 119, 219
+  size: 107, 123
+  orig: 185, 214
+  offset: 39, 45
+  index: -1
+20250924-122413_00020
+  rotate: false
+  xy: 1, 320
+  size: 109, 136
+  orig: 185, 214
+  offset: 39, 28
+  index: -1
+20250924-122413_00022
+  rotate: true
+  xy: 111, 343
+  size: 113, 134
+  orig: 185, 214
+  offset: 37, 12
+  index: -1
+20250924-122413_00024
+  rotate: false
+  xy: 1, 205
+  size: 117, 114
+  orig: 185, 214
+  offset: 35, 12
+  index: -1
+20250924-122413_00026
+  rotate: true
+  xy: 241, 121
+  size: 119, 98
+  orig: 185, 214
+  offset: 35, 12
+  index: -1
+20250924-122413_00028
+  rotate: false
+  xy: 119, 107
+  size: 121, 111
+  orig: 185, 214
+  offset: 35, 12
+  index: -1
+20250924-122413_00030
+  rotate: false
+  xy: 105, 14
+  size: 117, 92
+  orig: 185, 214
+  offset: 33, 12
+  index: -1
+20250924-122413_00032
+  rotate: false
+  xy: 1, 43
+  size: 103, 42
+  orig: 185, 214
+  offset: 43, 12
+  index: -1
+20250924-122413_00034
+  rotate: true
+  xy: 105, 194
+  size: 10, 9
+  orig: 185, 214
+  offset: 94, 23
+  index: -1

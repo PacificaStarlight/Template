@@ -1,4 +1,4 @@
-import { _decorator, Animation, Button, Component, Label, Node } from 'cc';
+import { _decorator, Animation, Button, Component, Label, Node, sp } from 'cc';
 import { GameManager } from './GameManager';
 import { EventManager } from './Common/Event/EventCenter';
 import { Constant } from './Constant';
@@ -19,7 +19,7 @@ export class UIManager extends Component {
     @property(Node)
     public failNode: Node = null;
     @property(Node)
-    private successNode: Node = null;
+    public successNode: Node = null;
 
     // // 尾版UI
     // @property(Node)
@@ -77,12 +77,17 @@ export class UIManager extends Component {
         this.hideGuide();
         GameManager.instance.isGameOver = true;
         // this.UI_EndBanner.active = true;
-        this.successNode.active = true;
+
         if (isWin) {
+            this.successNode.active = true;
+            this.successNode.getComponent(Animation).play();
             AudioManager.playOneShot(Constant.AUDIO_TYPE.SUCCESS_SFX); // 播放胜利音效
+            this
         }
         else {
-            AudioManager.playOneShot(Constant.AUDIO_TYPE.FAIL_SFX);    // 播放失败音效
+            this.failNode.active = true;
+            this.failNode.getComponent(Animation).play();
+            AudioManager.playOneShot(Constant.AUDIO_TYPE.FAIL_SFX); // 播放失败音效
         }
     }
 
