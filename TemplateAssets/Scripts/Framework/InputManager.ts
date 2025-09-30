@@ -160,10 +160,7 @@ export class InputManager extends Component {
         this.onFinishDrag(); // 结束拖动
 
         // 是否是第一次触摸
-        if (this.isFirstTouch) {
-            AudioManager.play(Constant.AUDIO_TYPE.BGM); // 播放背景音乐
-            this.isFirstTouch = false;
-        }
+        this.playBGM();
 
         // 显示引导
         if (!this.cd_ShowGuide) {
@@ -292,6 +289,7 @@ export class InputManager extends Component {
         AudioManager.playOneShot(Constant.AUDIO_TYPE.NEG_SFX_FAIL); // 播放移动失败音效
     }
 
+    /** 游戏结束 */
     private gameOver(isWin: boolean = false) {
         this.block = [];
         this.board = [];
@@ -300,6 +298,16 @@ export class InputManager extends Component {
         this.scheduleOnce(() => {
             EventManager.emit(Constant.EVENT_TYPE.GAME_OVER, isWin); // 发送游戏失败事件胜利事件
         }, 0.5);
+    }
+
+    /** 播放背景音乐 */
+    private playBGM() {
+        // 是否是第一次触摸
+        if (this.isFirstTouch) {
+            console.log('播放背景音乐');
+            AudioManager.play(Constant.AUDIO_TYPE.BGM); // 播放背景音乐
+            this.isFirstTouch = false;
+        }
     }
 
     /** 显示引导 */

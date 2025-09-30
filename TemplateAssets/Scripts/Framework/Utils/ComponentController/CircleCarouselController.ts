@@ -1,4 +1,4 @@
-import { _decorator, Component, instantiate, Node, tween, Vec3, Animation } from 'cc';
+import { _decorator, Component, instantiate, Node, tween, Vec3, Animation, CCFloat } from 'cc';
 import { EventManager } from '../../Common/Event/EventCenter';
 import { Constant } from '../../Constant';
 
@@ -8,9 +8,9 @@ const { ccclass, property } = _decorator;
 export class CircleCarouselController extends Component {
     @property({ type: Node })
     private center: Vec3 = new Vec3(0, -400, 0); // 圆心
-    @property({ type: Number })
+    @property({ type: CCFloat })
     private startAngle = 50; // 起始角度50°
-    @property({ type: Number })
+    @property({ type: CCFloat })
     private endAngle = -50;  // 结束角度-50°
 
     private timer: number = 0;
