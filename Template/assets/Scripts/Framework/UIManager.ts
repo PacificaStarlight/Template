@@ -18,7 +18,7 @@ export class UIManager extends Component {
     private UI_EndBanner: Node = null;
     // 购买按钮
     @property(Button)
-    private btnShopNow: Button[] = [];
+    private btnSDK: Button[] = [];
 
     // 单例模式
     public instance: UIManager = null;
@@ -41,7 +41,7 @@ export class UIManager extends Component {
             this.hideGuide(true);
             this.UI_EndBanner.active = false;
         }
-        this.btnShopNow.forEach((btn) => {
+        this.btnSDK.forEach((btn) => {
             btn.transition = Button.Transition.SCALE;
             btn.zoomScale = 1.1;
             btn.node.on(Button.EventType.CLICK, this.onShopNow, this);

@@ -1,11 +1,22 @@
-import { _decorator, Component, Node, Size, UITransform, view, Widget } from 'cc';
+import { _decorator, Component, Enum, Node, Size, UITransform, view, Widget } from 'cc';
 import { EDITOR } from 'cc/env';
 const { ccclass, property } = _decorator;
 
+export enum UIAdaptationType {
+    /** 不保持宽高比 */
+    Always,
+    /** 保持宽高比 */
+    KeepAspectRatio,
+    /** 根据宽度缩放背景 */
+    ScaleBgAccordingToWidth,
+    /** 根据高度缩放背景 */
+    ScaleBgAccordingToHeight,
+}
+
 @ccclass('UIAdaptation')
 export class UIAdaptation extends Component {
-    @property({ tooltip: '是否保持宽高比' })
-    private keepAspectRatio: boolean = true;
+    @property({ type: Enum(UIAdaptationType), tooltip: '适配模式' })
+    private adaptationType: UIAdaptationType = UIAdaptationType.KeepAspectRatio;
     // @property(Node)
     // private needAdapt: Node = null; // 需要适配的节点
 
@@ -43,6 +54,9 @@ export class UIAdaptation extends Component {
         this.adaptBackground();
     }
 
+    /** 适配背景
+     * @returns 获取设计分辨率
+     */
     adaptBackground() {
         const uiTransform = this.node.getComponent(UITransform);
         if (!uiTransform) return;
@@ -52,29 +66,43 @@ export class UIAdaptation extends Component {
         const designRatio = this.designResolution.width / this.designResolution.height;
         const screenRatio = visibleSize.width / visibleSize.height;
 
-        // console.log('当前屏幕分辨率:', visibleSize);
-
         let ratioX = visibleSize.width / this.designResolution.width;
         let ratioY = visibleSize.height / this.designResolution.height;
 
-        if (this.keepAspectRatio) {
-            // 保持宽高比适配
-            if (screenRatio > designRatio) {
-                // 屏幕更宽，以高度为基准
-                // uiTransform.height = visibleSize.height;
-                // uiTransform.width = visibleSize.height * designRatio;
+        // console.log('当前屏幕分辨率:', visibleSize + ' 缩放率:', ratioX, ratioY);
+        // console.log(uiTransform.width, uiTransform.height);
 
-                uiTransform.setContentSize(visibleSize.width * ratioY, visibleSize.height * ratioX);
-            } else {
-                // 屏幕更高，以宽度为基准
-                // uiTransform.width = visibleSize.width;
-                // uiTransform.height = visibleSize.width / designRatio;
-                uiTransform.setContentSize(visibleSize.width * ratioY, visibleSize.height * ratioX);
-            }
-        } else {
-            // 拉伸填充整个屏幕
-            uiTransform.width = visibleSize.width;
-            uiTransform.height = visibleSize.height;
+        switch (this.adaptationType) {
+            case UIAdaptationType.Always:
+                // 拉伸填充整个屏幕
+                uiTransform.width = visibleSize.width;
+                uiTransform.height = visibleSize.height;
+                break;
+            case UIAdaptationType.KeepAspectRatio:
+                // 保持宽高比适配
+                if (screenRatio > designRatio) {
+                    // 屏幕更宽，以高度为基准
+                    uiTransform.setContentSize(visibleSize.width * ratioY, visibleSize.height * ratioX);
+                } else {
+                    // 屏幕更高，以宽度为基准
+                    uiTransform.setContentSize(visibleSize.width * ratioY, visibleSize.height * ratioX);
+                }
+                break;
+            case UIAdaptationType.ScaleBgAccordingToWidth:
+                if (view.getVisibleSize().width > this.node.getComponent(UITransform).width) {
+                    let ratio = view.getVisibleSize().width / this.node.getComponent(UITransform).width; // 计算缩放比例
+                    this.node.getComponent(UITransform).setContentSize(this.node.getComponent(UITransform).width * ratio,
+                        this.node.getComponent(UITransform).height * ratio);
+                }
+                break;
+            case UIAdaptationType.ScaleBgAccordingToHeight:
+                this.node.getComponent(UITransform).setContentSize(visibleSize.width * ratioY, visibleSize.height * ratioY);
+                if (view.getVisibleSize().height > this.node.getComponent(UITransform).height) {
+                    let ratio = view.getVisibleSize().height / this.node.getComponent(UITransform).height; // 计算缩放比例
+                    this.node.getComponent(UITransform).setContentSize(this.node.getComponent(UITransform).width * ratio,
+                        this.node.getComponent(UITransform).height * ratio);
+                }
+                break;
         }
 
         // 如果有Widget组件，需要更新对齐
