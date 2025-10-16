@@ -20,10 +20,18 @@ export class UIManager extends Component {
     @property(Button)
     private btnSDK: Button[] = [];
 
+
+    /**
+     * 默认为false，表示拒绝开始计时，true表示开始计时
+     */
+    private cd_ShowGuide: boolean = false;
+    private waitTime: number = 5; // 等待时间
+    private hideTime: number = 0; // 隐藏时间
+
     // 单例模式
-    public instance: UIManager = null;
+    public static instance: UIManager = null;
     onLoad() {
-        this.instance = this;
+        UIManager.instance = this;
     }
 
     start() {
@@ -44,12 +52,17 @@ export class UIManager extends Component {
         this.btnSDK.forEach((btn) => {
             btn.transition = Button.Transition.SCALE;
             btn.zoomScale = 1.1;
-            btn.node.on(Button.EventType.CLICK, this.onShopNow, this);
+            btn.node.on(Button.EventType.CLICK, this.onSDKClick, this);
         });
     }
 
     update(deltaTime: number) {
-
+        if (this.cd_ShowGuide) {
+            this.hideTime += deltaTime;
+            if (this.hideTime > this.waitTime) {
+                this.hideGuide(false);
+            }
+        }
     }
 
     onDestroy() {
@@ -58,7 +71,7 @@ export class UIManager extends Component {
     }
 
     // 点击商店按钮
-    onShopNow() {
+    onSDKClick() {
         SDKManager.instance.clickDown();
     }
 
@@ -80,8 +93,11 @@ export class UIManager extends Component {
         if (GameManager.instance.isGameOver) return;
         if (orShow) {
             this.UI_Guide.active = true;
-            return;
+
+        } else {
+            this.UI_Guide.active = false;
         }
-        this.UI_Guide.active = false;
+        this.cd_ShowGuide = !orShow;
+        this.hideTime = 0;
     }
 }

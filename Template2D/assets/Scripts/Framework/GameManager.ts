@@ -1,6 +1,8 @@
-import { _decorator, Component, Node, macro, director, AudioClip, Enum } from 'cc';
+import { _decorator, Component, Node, macro, director, AudioClip, Enum, Prefab } from 'cc';
 import { StateController } from './Utils/UIcontrol/StateController';
 import { Constant } from './Constant';
+import { ResourceManager } from './Common/Resource/ResourceManager';
+import { PoolManager } from './Common/Pools/PoolManager';
 
 const { ccclass, property } = _decorator;
 
@@ -46,5 +48,22 @@ export class GameManager extends Component {
         } else {
             this.stateController.selectPageByIndex(1);
         }
+    }
+
+    /** 预加载某文件夹下所有预制体
+     * @param path 预制体路径
+     * @param node 将存放预制体数组
+     * @param number 预制体数量
+     * @param callback 回调函数
+     */
+    public preloadAllRes(path: string, node: Prefab[], number: number, callback?: Function) {
+        ResourceManager.loadAllRes(path, Prefab, (err: any, prefabs: Prefab[]) => {
+            console.log(prefabs);
+            prefabs.forEach(prefab => {
+                PoolManager.prePool(prefab, number);
+                node.push(prefab);
+            });
+        });
+        callback && callback();
     }
 }

@@ -1,17 +1,14 @@
-import { _decorator, Camera, Component, find, Node, Tween, tween, v3, view } from 'cc';
+import { _decorator, Camera, Component, Enum, find, Node, Tween, tween, v3, view } from 'cc';
 const { ccclass, property } = _decorator;
-
 @ccclass('CameraController')
 export class CameraController extends Component {
     @property(Camera)
     public mainCamera: Camera = null;
     @property(Node)
     public UI_LayoutTop: Node = null;
-
     // 开始运动节点
     @property(Node)
     private startMoveNode: Node = null;
-
     // 结束运动节点
     @property(Node)
     private endMoveNode: Node = null;
@@ -39,7 +36,27 @@ export class CameraController extends Component {
     }
 
     start() {
-        this.moveCamera(0.5, 2); // 镜头运动
+        if (this.mainCamera) {
+            // 主摄像机已存在，可以在这里执行其他初始化操作
+            console.log('主摄像机已就绪:', this.mainCamera.node.name);
+        } else {
+            // 尝试获取当前节点上的Camera组件
+            this.mainCamera = this.getComponent(Camera);
+
+            // 如果还是没有，则查找场景中的主摄像机
+            if (!this.mainCamera) {
+                let cameraNode = find('Main Camera');
+                if (cameraNode) {
+                    this.mainCamera = cameraNode.getComponent(Camera);
+                }
+            }
+
+            if (this.mainCamera) {
+                console.log('成功获取主摄像机:', this.mainCamera.node.name);
+            } else {
+                console.warn('未能找到主摄像机');
+            }
+        }
     }
 
     /** 锁定结束位置 */
@@ -91,23 +108,34 @@ export class CameraController extends Component {
 
     /** 镜头抖动
      *  
-     * @param duration 抖动时间, 默认0.05秒
+     * @param time 抖动时间, 默认0.1秒
      * @param magnitude 抖动幅度, 默认5
      */
-    public shakeCamera(duration: number = 0.05, magnitude: number = 5) {
+    public shakeCamera(time: number = 0.1, magnitude: number = 5) {
         if (!this.mainCamera) {
             console.warn('Camera is not assigned');
             return;
         }
+        let duration = 0.05;
+        let cameraPos = this.mainCamera.node.position.clone(); // 获取世界坐标
+        let offsetY1 = cameraPos.y + magnitude;
+        let offsetY2 = cameraPos.y - magnitude;
+        let offsetX1 = cameraPos.x - magnitude;
+        let offsetX2 = cameraPos.x + magnitude;
 
-        console.log('镜头抖动');
         tween(this.mainCamera.node)
+            .to(0, { position: v3(0, 0, 0) })
+            .to(duration, { position: v3(offsetX1, 0, 0) })
+            .to(duration, { position: v3(offsetX2, 0, 0) })
+            .to(duration, { position: v3(0, offsetY1, 0) })
+            .to(duration, { position: v3(0, offsetY2, 0) })
             .to(duration, { position: v3(0, 0, 0) })
-            .to(duration, { position: v3(magnitude, 0, 0) })
-            .to(duration, { position: v3(-magnitude, 0, 0) })
-            .to(duration, { position: v3(0, magnitude, 0) })
-            .to(duration, { position: v3(0, -magnitude, 0) })
-            .to(duration, { position: v3(0, 0, 0) })
+            .call(() => {
+                time -= duration; // 减少时间
+                if (time > 0) {
+                    this.shakeCamera(time, magnitude); // 递归调用
+                }
+            })
             .start();
     }
 }

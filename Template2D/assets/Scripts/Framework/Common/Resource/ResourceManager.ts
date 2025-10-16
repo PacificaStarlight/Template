@@ -3,8 +3,7 @@ const { ccclass, property } = _decorator;
 
 @ccclass('ResourceManager')
 export class ResourceManager extends Component {
-    /**
-     * 加载资源
+    /** 加载指定资源
      * @param url   资源路径
      * @param type  资源类型
      * @param cb    回调
@@ -21,8 +20,24 @@ export class ResourceManager extends Component {
         });
     }
 
-    /**
-     * 获取特效prefab
+    /** 加载指定全部资源
+     * @param url   资源路径
+     * @param type  资源类型
+     * @param cb    回调
+     * @method loadRes
+     */
+    public static loadAllRes(url: string, type: any, cb: Function = () => { }) {
+        resources.loadDir(url, type, (err: any, res: any[]) => {
+            if (err) {
+                error(err.message || err);
+                cb(err, res);
+                return;
+            }
+            cb && cb(null, res);
+        });
+    }
+
+    /** 获取特效prefab
      * @param modulePath 路径
      * @returns
      */
@@ -39,8 +54,7 @@ export class ResourceManager extends Component {
         });
     }
 
-    /**
-     * 获取模型数据
+    /** 获取模型数据
      * @param modulePath 模型路径
      * @returns
      */
@@ -57,8 +71,7 @@ export class ResourceManager extends Component {
         });
     }
 
-    /**
-     * 设置精灵贴图
+    /** 设置精灵贴图
      * @param path 资源路径
      * @param sprite 精灵
      * @param cb 回调函数
@@ -77,8 +90,7 @@ export class ResourceManager extends Component {
         });
     }
 
-    /**
-     * 获取贴图资源
+    /** 获取贴图资源
      * @param path 贴图路径
      * @returns
      */
@@ -102,8 +114,7 @@ export class ResourceManager extends Component {
         });
     }
 
-    /**
-     * 获取UI prefab
+    /** 获取UI prefab
      * @param prefabPath prefab路径
      * @param cb 回调函数
      */
@@ -111,8 +122,7 @@ export class ResourceManager extends Component {
         this.loadRes("prefab/ui/" + prefabPath, Prefab, cb);
     }
 
-    /**
-     * 创建ui界面
+    /** 创建ui界面
      * @param path ui路径
      * @param cb 回调函数
      * @param parent 父节点
@@ -131,8 +141,7 @@ export class ResourceManager extends Component {
         });
     }
 
-    /**
-     * 获取json数据
+    /** 获取json数据
      * @param fileName 文件名
      * @param cb 回调函数
      */
@@ -151,8 +160,7 @@ export class ResourceManager extends Component {
         });
     }
 
-    /**
-     * 获取文本数据
+    /** 获取文本数据
      * @param fileName 文件名
      * @param cb  回调函数
      */

@@ -15,14 +15,21 @@ enum MOVE_TYPE {
 
 /** 事件名字 */
 enum EVENT_TYPE {
-    CHANGE_GUIDE = 'ChangeGuide',
-    GAME_OVER = 'GameOver',
-    INIT_BLOCKS = 'InitBlocks',
+    // UI------------------------------------------------------------------------
+    CHANGE_GUIDE = 'ChangeGuide',   // 切换引导界面
+    GAME_START = 'GameStart',   // 游戏开始
+    GAME_OVER = 'GameOver', // 游戏结束
+
+    // InputManager-------------------------------------------------------------
+    PLAY_BGM = 'PlayBGM',           // 播放背景音乐
+
+    // Blocks-------------------------------------------------------------------
+    INIT_BLOCKS = 'InitBlocks', // 初始化块
 }
 
 /** 动画名称 */
 enum ANIM_CLIP {
-
+    BUTTON_JUMP = 'Anims/ButtonJump', // 按钮跳跃动画
 }
 
 /** 音效类型 */
@@ -47,12 +54,14 @@ enum AUDIO_TYPE {
 
 /** 块类型 */
 export enum BLOCK_TYPE {
-    BLOCK = 'block_type_1',
+    BLOCK1 = 'block_type_1',
 }
 
 /** 资源路径 */
 export enum RES_PATH {
-    BLOCK,
+    BLOCK = 'Prefabs/Blocks',
+    BISCUIT = 'Prefabs/Biscuit',
+    PARTICLE = 'Prefabs/Particle',
 }
 
 /** 常量存储 */
@@ -76,6 +85,4 @@ export class Constant {
     /** 块类型 */
     public static BLOCK_TYPE = BLOCK_TYPE;
 
-    /** 资源路径 */
-    public static RES_PATH = RES_PATH;
 }

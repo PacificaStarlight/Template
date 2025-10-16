@@ -32,17 +32,10 @@ export class InputManager extends Component {
 
     private chooseIndex = 0;
 
-    private waitTime: number = 5; // 等待时间
-    private hideTime: number = 0; // 隐藏时间
-
     private touchStartPos: Vec2 = null; // 记录触摸开始位置
     private startPos: Vec3 = null; // 记录触摸开始位置
     private startParent: Node = null; // 记录触摸开始位置
 
-    /**
-     * 默认为false，表示拒绝开始计时，true表示开始计时
-     */
-    private cd_ShowGuide: boolean = false;
     private isFirstTouch: boolean = true; // 是否是第一次触摸
     private isOver: boolean = false; // 是否结束
     private isMoving: boolean = false; // 是否正在移动
@@ -57,6 +50,7 @@ export class InputManager extends Component {
     }
 
     start() {
+        EventManager.on(Constant.EVENT_TYPE.PLAY_BGM, this.playBGM, this);
         this.boardList.forEach(child => {
             child.children.forEach(child => {
                 this.board.push(child);
@@ -78,17 +72,12 @@ export class InputManager extends Component {
     }
 
     update(deltaTime: number) {
-        if (this.cd_ShowGuide) {
-            this.hideTime += deltaTime;
-            if (this.hideTime > this.waitTime && !this.isOver) {
-                this.showGuide();
-            }
-        }
     }
 
     onDisable() {
         this.cancelListening();
         EventManager.off(Constant.EVENT_TYPE.INIT_BLOCKS, this.initBlocks, this);
+        EventManager.off(Constant.EVENT_TYPE.PLAY_BGM, this.playBGM, this);
     }
 
     // 触摸开始事件
@@ -162,18 +151,17 @@ export class InputManager extends Component {
         // 是否是第一次触摸
         this.playBGM();
 
-        // 显示引导
-        if (!this.cd_ShowGuide) {
-            EventManager.emit(Constant.EVENT_TYPE.CHANGE_GUIDE);     // 显示引导
-            this.cd_ShowGuide = true;
-        }
+        // // 显示引导
+        // if (!this.cd_ShowGuide) {
+        //     EventManager.emit(Constant.EVENT_TYPE.CHANGE_GUIDE);     // 显示引导
+        //     this.cd_ShowGuide = true;
+        // }
 
         this.releaseTempVar(); // 释放临时变量
     }
 
     // 释放临时变量
     private releaseTempVar() {
-        this.hideTime = 0;
         this.curChooseNode = null;
         this.lateChooseNode = null;
         this.curChooseBoard = null;
@@ -187,6 +175,7 @@ export class InputManager extends Component {
         if (this.curChooseNode == null) {
             for (let i = 0; i < targetBlock.length; i++) {
                 const block = targetBlock[i];
+                this.chooseIndex = i;
                 const isContain = block.getComponent(UITransform).getBoundingBoxToWorld().contains(tempV2); // 判断是否包含块
                 if (isContain) {
                     this.curChooseNode = block;
@@ -314,15 +303,11 @@ export class InputManager extends Component {
     private showGuide() {
         EventManager.emit(Constant.EVENT_TYPE.CHANGE_GUIDE, true);
         console.log('打开引导UI');
-        this.cd_ShowGuide = false;        // 设置为false，表示打开引导UI
-        this.hideTime = 0;
     }
 
     /** 隐藏引导 */
     private hideGuide() {
         EventManager.emit(Constant.EVENT_TYPE.CHANGE_GUIDE, false);     // 显示引导
-        this.cd_ShowGuide = true;
-        this.hideTime = 0;
     }
 
     /** 开始监听全局触摸事件 */

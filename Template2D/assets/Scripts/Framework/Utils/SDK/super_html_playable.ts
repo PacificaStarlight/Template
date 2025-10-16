@@ -92,5 +92,14 @@ export class super_html_playable {
         //@ts-ignore
         window.super_html && (super_html.appstore_cpp_url = url);
     }
+
+    get_web_language() {
+        //@ts-ignore
+        if (window.super_html && super_html.get_web_language) {
+            //@ts-ignore
+            return super_html.get_web_language();
+        }
+        return navigator.language;
+    }
 }
 export default new super_html_playable();
