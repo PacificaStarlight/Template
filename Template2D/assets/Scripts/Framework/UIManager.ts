@@ -60,7 +60,7 @@ export class UIManager extends Component {
         if (this.cd_ShowGuide) {
             this.hideTime += deltaTime;
             if (this.hideTime > this.waitTime) {
-                this.hideGuide(false);
+                this.hideGuide(true);
             }
         }
     }
