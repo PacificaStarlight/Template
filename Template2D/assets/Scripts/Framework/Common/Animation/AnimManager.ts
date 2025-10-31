@@ -66,7 +66,7 @@ export class AnimManager {
      * @param loop 是否循环（默认false）
      * @param speed 播放速度（默认1.0）
      */
-    public static playByNode(key: string, node: Node, clipName?: string, loop: boolean = false, speed: number = 1.0) {
+    public static playByNode(key: string, node: Node, loop: boolean = false, speed: number = 1.0, callback?: () => void) {
         this.registerAnim(key, node); // 注册动画
 
         const anim = this._animations.get(key);
@@ -74,10 +74,10 @@ export class AnimManager {
             console.warn(`动画未注册: ${key}`);
             return null;
         }
-        resources.load(clipName, AnimationClip, (err, clip) => {
+        resources.load(key, AnimationClip, (err, clip) => {
             clip.wrapMode = loop ? AnimationClip.WrapMode.Loop : AnimationClip.WrapMode.Default;
             if (err) {
-                console.error(`加载动画剪辑失败: ${clipName}`, err);
+                console.error(`加载动画剪辑失败: ${key}`, err);
                 return;
             }
             anim.addClip(clip);
@@ -87,6 +87,12 @@ export class AnimManager {
             const state = anim.getState(clip.name);
             if (state) {
                 state.speed = speed;
+            }
+
+            // 使用定时器触发回调
+            if (callback && !loop) {
+                const duration = (clip.duration / speed);
+                setTimeout(callback, duration * 1000);
             }
 
             anim.play(clip.name);

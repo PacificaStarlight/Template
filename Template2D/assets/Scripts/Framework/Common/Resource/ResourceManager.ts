@@ -20,6 +20,23 @@ export class ResourceManager extends Component {
         });
     }
 
+    /** 加载指定资源
+     * @param url   资源路径
+     * @param type  资源类型
+     * @param cb    回调
+     * @method loadRes
+     */
+    public static loadResource(url: string, type: any, cb: Function = () => { }) {
+        resources.load(url, type, (err: any, res: any) => {
+            if (err) {
+                error(err.message || err);
+                cb(err, res);
+                return;
+            }
+            cb && cb(null, res);
+        });
+    }
+
     /** 加载指定全部资源
      * @param url   资源路径
      * @param type  资源类型
@@ -102,13 +119,10 @@ export class ResourceManager extends Component {
                     reject && reject();
                     return;
                 }
-
                 let texture = new Texture2D();
                 texture.image = img;
-
                 let sf = new SpriteFrame();
                 sf.texture = texture;
-
                 resolve && resolve(sf);
             });
         });

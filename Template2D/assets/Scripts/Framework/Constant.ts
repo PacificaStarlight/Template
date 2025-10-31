@@ -23,6 +23,11 @@ enum EVENT_TYPE {
     // InputManager-------------------------------------------------------------
     PLAY_BGM = 'PlayBGM',           // 播放背景音乐
 
+    // InputSystem--------------------------------------------------------------
+    START_LISTEN_TOUCH = 'StartListenTouch', // 开始监听触摸
+    CANCEL_LISTEN_TOUCH = 'CancelListenTouch', // 取消监听触摸
+    PLAYER_MOVE = 'PlayerMove', // 玩家移动
+
     // Blocks-------------------------------------------------------------------
     INIT_BLOCKS = 'InitBlocks', // 初始化块
 }
