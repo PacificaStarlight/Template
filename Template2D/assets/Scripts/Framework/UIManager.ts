@@ -42,7 +42,7 @@ export class UIManager extends Component {
 
     // 初始化
     init() {
-        if (GameManager.instance.gameRunState == Constant.GAME_RUN_STATE.TESTING) { // 如果是测试模式，则不显示尾版
+        if (GameManager.instance.gameRunState == Constant.GAME_RUN_STATE.TESTING_GAMEOVER) { // 如果是测试模式，则不显示尾版
             this.gameOver();
         }
         else {

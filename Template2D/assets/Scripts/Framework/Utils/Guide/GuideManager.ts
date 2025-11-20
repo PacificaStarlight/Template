@@ -1,149 +1,118 @@
 import { _decorator, Component, Node, Animation, Vec2, Vec3, tween, Tween } from 'cc';
+import { InputManager } from '../../InputManager';
 const { ccclass, property } = _decorator;
 @ccclass('GuideManager')
 export class GuideManager extends Component {
 
     private curIndex: number = 0;  //当前索引
-    private initPos: Vec2 = new Vec2(4, 4);  //初始位置
     private array: number[][] = [];  //引导数组，获取引导坐标
     private girds: Node[][] = [];  //引导格子，获取引导位置
     private curAnim: Animation = null; //当前动画
+    private board: Node[][] = [];
 
     public posArray: Vec3[] = [];
     public isShow: boolean = false; //是否显示引导
-    private isInitialized: boolean = false; // 是否已经初始化
+    public isInitialized: boolean = false; // 是否已经初始化
     public static instance: GuideManager = null;
     onLoad() {
         GuideManager.instance = this;
     }
 
     start() {
-        this.curAnim = this.node.getComponent(Animation);   // 获取动画
-        // this.girds = Board.instance.girds;  // 获取引导格子
-        this.array = [];
-        console.log("引导格子：")
-        console.log(this.girds);
-        console.log("引导数组：");
-        console.log(this.array);
-        // this.updateGuidePos();
     }
 
     onEnable() {
-        if (this.isInitialized) {
-            // console.log("GuideManager启用");
-            // console.log(this.array); // 打印引导数组
-            this.initArray();
-            // console.log(this.array); // 打印引导数组
-        }
+        if (!this.isInitialized) return;
+        // 获取当前棋盘的数据
+        this.getArray();
+        // 寻找可合体的方块
+        this.checkDestroyBlock();
     }
 
-    /** 初始化引导数组，在开始的时候使用一次 */
-    public initArray() {
+    init() {
+        this.isInitialized = true;
+        // 获取当前棋盘的数据
+        this.getArray();
+        // 寻找可合体的方块
+        this.checkDestroyBlock();
+    }
+
+    /** 获取引导数组，在显示的时候使用 */
+    public getArray() {
         this.array = [];
-        let index = 0;
-        this.isInitialized = true; // 标记已经初始化
-        // for (let i = 0; i < Board.instance.rows; i++) {
-        //     this.array[i] = [];
-        //     for (let j = 0; j < Board.instance.cols; j++) {
-        //         // let block = Board.instance.getBlockByBoard(i, j);
-        //         // let type = block.getComponent(Block).blockType;
-        //         // this.array[i][j] = type;
-        //         index++;
-        //     }
-        // }
-        // console.log("初始化引导数组，只是为了拷贝相应位置上方块类型的值，使得我能清晰的知道场上是什么情况，也许这意味着，我需要重新设计这个方法，因为它的功能没有达到预期");
-        console.log(this.array);
-        this.updateGuidePos(); // 更新引导位置
-    }
-
-    // 更新引导位置
-    public updatePos() {
-        // 获取array的行数和列数
-        let row = this.array.length;
-        let col = this.array[0].length;
-        console.log("行数：" + row + " 列数：" + col);
-        for (let i = 0; i < row; i++) {
-            for (let j = 0; j < col; j++) {
-                if (this.array[i][j] == this.curIndex) {
-                    // if (Board.instance.board[i][j] == 0) {
-                    //     this.curIndex++;
-                    //     i = -1;
-                    //     j = -1;
-                    //     break;
-                    // }
-                    // else {
-                    //     this.node.setWorldPosition(this.girds[i][j].worldPosition);
-                    // }
-                }
+        let nodes = InputManager.instance.block;
+        // let boards = InputManager.instance.board;
+        // console.log("更新引导数组");
+        // console.log(nodes);
+        // console.log(boards);
+        for (let i = 0; i < 7; i++) {
+            this.array[i] = [];
+            this.board[i] = [];
+            for (let j = 0; j < 4; j++) {
+                this.array[i][j] = 0;
+                // this.board[i][j] = boards[i * 4 + j];
             }
         }
+        for (let i = 0; i < nodes.length; i++) {
+            let block = nodes[i];
+            if (block.active == false) continue;
+            // let x = block.getComponent(Block).transform.x;
+            // let y = block.getComponent(Block).transform.y;
+            // this.array[x][y] = block.getComponent(Block).blockType;
+        }
+        console.log(this.array);
+        console.log(this.board);
     }
 
-    // 切换动画
-    public changeAnim(index = 0) {
-        if (index == 0) {
-            this.curAnim.play();  //切换动画
+    // 检查是否有三个或以上的相邻数字
+    public checkDestroyBlock() {
+        const result = this.findTwoOrMoreAdjacent(this.array);
+        console.log("检查结果：", result);
+        if (result == null) {
+            const results = this.findFirstSameNumberPairWithZeroPath(this.array); // 寻找相同数字并通过0路径相连的组合
+            console.log("寻找相同数字并通过0路径相连的组合：", results);
+            if (results == null) {
+                console.log("没有可通过0路径连接的相同数字");
+            } else {
+                // console.log("找到了可通过0路径连接的相同数字");
+                this.posArray = [];
+                // 处理第一个匹配项作为引导提示
+                for (let i = 0; i < results.path.length; i++) {
+                    let pos = results.path[i];
+                    let targetPos = this.board[pos[0]][pos[1]].worldPosition.clone();
+                    this.posArray.push(targetPos);
+                }
+                this.updateGuidePos();
+            }
+        }
+        else {
+            // console.log("找到连续的数组");
+            let pos0 = result.positions[0];
+            let pos1 = result.positions[1];
+            let targetPos0 = this.board[pos0[0]][pos0[1]].worldPosition.clone();
+            let targetPos1 = this.board[pos1[0]][pos1[1]].worldPosition.clone();
+            this.posArray = [];
+            this.posArray.push(targetPos1);
+            this.posArray.push(targetPos0);
+            this.updateGuidePos();
         }
     }
 
     // 更新引导位置
     public updateGuidePos() {
-        const result = this.findThreeOrMoreAdjacent(this.array);
-        // console.log("找到的数字：", result);
-        if (result == null) {
-            console.log("没有找到三个或以上的相邻数字,再次加载初始化数组");
-            // Board.instance.refreshBoard();
-            return;
-        }
-        else {
-            this.posArray = [];// 存储所有需要移动的方块的位置
-            Tween.stopAll();
-            // console.log("找到的数字：", result.positions);
-            let posPath = this.filterAndReorderConnectedPoints(result.positions);
-            let pos = this.filterPathByManhattan(posPath);
-
-            // console.log("过滤后的位置：", posPath.length);
-            console.log("过滤后的位置：", pos);
-            for (let i = 0; i < pos.length; i++) {
-                let trans = pos[i];
-                // let block = Board.instance.boardNode[trans[0]][trans[1]];
-                // let worldPos = block.worldPosition; // 更新位置
-                // this.posArray.push(worldPos);
-            }
-            let index = 0;
-            this.node.worldPosition = this.posArray[index++];
-            this.moveToPoints(this.posArray, index);  // 移动到下一个位置
-        }
-    }
-
-    // 检查是否有三个或以上的相邻数字
-    public checkDestroyBlock() {
-        // this.array = [];
-        // let index = 0;
-        // this.isInitialized = true; // 标记已经初始化
-        // for (let i = 0; i < Board.instance.rows; i++) {
-        //     this.array[i] = [];
-        //     for (let j = 0; j < Board.instance.cols; j++) {
-        //         let block = Board.instance.getBlockByBoard(i, j);
-        //         let type = block.getComponent(Block).blockType;
-        //         this.array[i][j] = type;
-        //         index++;
-        //     }
-        // }
-        // const result = this.findThreeOrMoreAdjacent(this.array);
-        // console.log("检查结果：", result);
-        // if (result == null) {
-        //     console.log("再次加载初始化数组");
-        //     Board.instance.refreshBoard();
-        //     // InputManager.instance.hideTime = 0; // 隐藏时间
-        // }
+        console.log("更新引导位置");
+        console.log(this.posArray);
+        let index = 0;
+        this.node.worldPosition = this.posArray[index++];
+        Tween.stopAllByTarget(this.node); // 停止所有与该节点相关的tween动画
+        this.moveToPoints(this.posArray, index);  // 移动到下一个位置
     }
 
     // 移动节点
     public moveToPoints(posArray: Vec3[], index: number) {
         if (index <= posArray.length) {
             tween(this.node)
-                .to(0.7, { worldPosition: posArray[index] }) // 移动到下一个位置
+                .to(0.5, { worldPosition: posArray[index] }) // 移动到下一个位置
                 .call(() => {
                     // console.log("移动到目标位置：", index);
                     index++;
@@ -154,7 +123,7 @@ export class GuideManager extends Component {
             index = 0;
             this.node.worldPosition = this.posArray[0];
             tween(this.node)
-                .delay(0.5)
+                .delay(0.3)
                 .call(() => {
                     index++;
                     this.moveToPoints(this.posArray, index);
@@ -163,6 +132,258 @@ export class GuideManager extends Component {
         }
     }
 
+    // 切换动画
+    public changeAnim(index = 0) {
+        if (index == 0) {
+            this.curAnim.play();  //切换动画
+        }
+    }
+
+    //#region 寻找可消除的数组
+    /**
+     * 寻找第一对相同数字并通过0路径相连的组合
+     * @param grid 当前游戏网格数据
+     * @returns 第一个满足条件的配对及路径，如果没找到则返回null
+     */
+    public findFirstSameNumberPairWithZeroPath(grid: number[][]): { value: number, positions: [number, number][], path: [number, number][] } | null {
+        const rows = grid.length;
+        const cols = grid[0].length;
+        const sameNumbersMap = new Map<number, [number, number][]>();
+
+        // 收集所有非零数字及其位置
+        for (let i = 0; i < rows; i++) {
+            for (let j = 0; j < cols; j++) {
+                const value = grid[i][j];
+                if (value !== 0) {
+                    if (!sameNumbersMap.has(value)) {
+                        sameNumbersMap.set(value, []);
+                    }
+                    sameNumbersMap.get(value)!.push([i, j]);
+                }
+            }
+        }
+
+        // 对每个数字的所有位置两两比较
+        for (const [value, positions] of sameNumbersMap) {
+            for (let i = 0; i < positions.length; i++) {
+                for (let j = i + 1; j < positions.length; j++) {
+                    const posA = positions[i];
+                    const posB = positions[j];
+
+                    const path = this.findZeroPath(grid, posA, posB);
+                    if (path !== null) {
+                        return {
+                            value,
+                            positions: [posA, posB],
+                            path
+                        };
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * 检查两点间是否存在全为0的路径，并返回路径
+     * @param grid 当前游戏网格数据
+     * @param start 起始点坐标 [row, col]
+     * @param end 终止点坐标 [row, col]
+     * @returns 路径节点数组，如果不存在有效路径则返回null
+     */
+    private findZeroPath(grid: number[][], start: [number, number], end: [number, number]): [number, number][] | null {
+        const rows = grid.length;
+        const cols = grid[0].length;
+        const visited = new Set<string>();
+        const queue: [number, number][] = [start];
+        const predecessors = new Map<string, [number, number] | null>(); // 记录每个节点的前驱节点
+
+        visited.add(`${start[0]},${start[1]}`);
+        predecessors.set(`${start[0]},${start[1]}`, null);
+
+        const directions = [[-1, 0], [1, 0], [0, -1], [0, 1]]; // 上下左右四个方向
+
+        while (queue.length > 0) {
+            const [x, y] = queue.shift()!;
+
+            if (x === end[0] && y === end[1]) {
+                // 找到终点，重构路径
+                return this.reconstructPath(predecessors, start, end);
+            }
+
+            for (const [dx, dy] of directions) {
+                const nx = x + dx;
+                const ny = y + dy;
+
+                if (nx >= 0 && nx < rows && ny >= 0 && ny < cols) {
+                    const key = `${nx},${ny}`;
+
+                    // 如果是终点，则允许进入；如果是0且未访问过则入队
+                    if ((nx === end[0] && ny === end[1]) ||
+                        (grid[nx][ny] === 0 && !visited.has(key))) {
+                        visited.add(key);
+                        predecessors.set(key, [x, y]);
+                        queue.push([nx, ny]);
+                    }
+                }
+            }
+        }
+        return null; // 未找到路径
+    }
+
+    /**
+     * 重构路径
+     * @param predecessors 前驱节点映射
+     * @param start 起始点
+     * @param end 终点
+     * @returns 完整路径
+     */
+    private reconstructPath(predecessors: Map<string, [number, number] | null>, start: [number, number], end: [number, number]): [number, number][] {
+        const path: [number, number][] = [];
+        let current: [number, number] | null = end;
+
+        while (current !== null) {
+            path.unshift(current); // 添加到路径开头
+            current = predecessors.get(`${current[0]},${current[1]}`) || null;
+        }
+
+        return path;
+    }
+
+    /**
+     * 寻找第一对相同数字并通过0路径相连的组合
+     * @param grid 当前游戏网格数据
+     * @returns 第一个满足条件的配对，如果没找到则返回null
+     */
+    public findFirstSameNumberPairWithZero(grid: number[][]): { value: number, positions: [number, number][] } | null {
+        const rows = grid.length;
+        const cols = grid[0].length;
+        const sameNumbersMap = new Map<number, [number, number][]>();
+
+        // 收集所有非零数字及其位置
+        for (let i = 0; i < rows; i++) {
+            for (let j = 0; j < cols; j++) {
+                const value = grid[i][j];
+                if (value !== 0) {
+                    if (!sameNumbersMap.has(value)) {
+                        sameNumbersMap.set(value, []);
+                    }
+                    sameNumbersMap.get(value)!.push([i, j]);
+                }
+            }
+        }
+
+        // 对每个数字的所有位置两两比较
+        for (const [value, positions] of sameNumbersMap) {
+            for (let i = 0; i < positions.length; i++) {
+                for (let j = i + 1; j < positions.length; j++) {
+                    const posA = positions[i];
+                    const posB = positions[j];
+
+                    if (this.hasZeroPath(grid, posA, posB)) {
+                        return {
+                            value,
+                            positions: [posA, posB]
+                        };
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * 检查两点间是否存在全为0的路径
+     * @param grid 当前游戏网格数据
+     * @param start 起始点坐标 [row, col]
+     * @param end 终止点坐标 [row, col]
+     * @returns 是否存在有效路径
+     */
+    private hasZeroPath(grid: number[][], start: [number, number], end: [number, number]): boolean {
+        const rows = grid.length;
+        const cols = grid[0].length;
+        const visited = new Set<string>();
+        const queue: [number, number][] = [start];
+        visited.add(`${start[0]},${start[1]}`);
+
+        const directions = [[-1, 0], [1, 0], [0, -1], [0, 1]]; // 上下左右四个方向
+
+        while (queue.length > 0) {
+            const [x, y] = queue.shift()!;
+
+            if (x === end[0] && y === end[1]) {
+                return true;
+            }
+
+            for (const [dx, dy] of directions) {
+                const nx = x + dx;
+                const ny = y + dy;
+
+                if (nx >= 0 && nx < rows && ny >= 0 && ny < cols) {
+                    const key = `${nx},${ny}`;
+
+                    // 如果是终点，则允许进入；如果是0且未访问过则入队
+                    if ((nx === end[0] && ny === end[1]) ||
+                        (grid[nx][ny] === 0 && !visited.has(key))) {
+                        visited.add(key);
+                        queue.push([nx, ny]);
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * 寻找相同数字并通过0路径相连的组合
+     * @param grid 当前游戏网格数据
+     * @returns 所有满足条件的配对列表
+     */
+    public findSameNumberPairsWithZeroPath(grid: number[][]): { value: number, positions: [number, number][] }[] {
+        const rows = grid.length;
+        const cols = grid[0].length;
+        const sameNumbersMap = new Map<number, [number, number][]>();
+
+        // 收集所有非零数字及其位置
+        for (let i = 0; i < rows; i++) {
+            for (let j = 0; j < cols; j++) {
+                const value = grid[i][j];
+                if (value !== 0) {
+                    if (!sameNumbersMap.has(value)) {
+                        sameNumbersMap.set(value, []);
+                    }
+                    sameNumbersMap.get(value)!.push([i, j]);
+                }
+            }
+        }
+
+        const results: { value: number, positions: [number, number][] }[] = [];
+
+        // 对每个数字的所有位置两两比较
+        sameNumbersMap.forEach((positions, value) => {
+            for (let i = 0; i < positions.length; i++) {
+                for (let j = i + 1; j < positions.length; j++) {
+                    const posA = positions[i];
+                    const posB = positions[j];
+
+                    if (this.hasZeroPath(grid, posA, posB)) {
+                        results.push({
+                            value,
+                            positions: [posA, posB]
+                        });
+                    }
+                }
+            }
+        });
+
+        return results;
+    }
+    //#endregion
+
+    //#region 寻找n个或以上的相邻数字
     /** 通过曼哈顿距离，过滤四向路径 */
     private filterPathByManhattan(path: number[][]): number[][] {
         if (path.length <= 2) return path;
@@ -204,6 +425,32 @@ export class GuideManager extends Component {
         return result;
     }
 
+    /** 核心查找方法：查找三个及以上相邻的相同数字(返回第一条找到的结果)*/
+    private findTwoOrMoreAdjacent(grid: number[][]): { value: number, positions: [number, number][] } | null {
+        const rows = grid.length;
+        if (rows === 0) return null;
+        const cols = grid[0].length;
+        const visited = new Set<string>();
+
+        for (let i = 0; i < rows; i++) {
+            for (let j = 0; j < cols; j++) {
+                const positionKey = `${i},${j}`;
+                if (visited.has(positionKey)) continue;
+
+                const currentValue = grid[i][j];
+                const connectedGroup: [number, number][] = [];
+
+                // DFS查找相连的相同数字
+                this.dfsFindConnected(i, j, currentValue, grid, visited, connectedGroup);
+
+                // 找到2个或以上的相邻数字，立即返回
+                if (connectedGroup.length >= 2) {
+                    return { value: currentValue, positions: connectedGroup };
+                }
+            }
+        }
+        return null;
+    }
     /** 核心查找方法：查找三个及以上相邻的相同数字(返回第一条找到的结果)*/
     private findThreeOrMoreAdjacent(grid: number[][]): { value: number, positions: [number, number][] } | null {
         const rows = grid.length;
@@ -272,6 +519,7 @@ export class GuideManager extends Component {
 
         if (row < 0 || row >= rows || col < 0 || col >= cols) return;
         if (visited.has(positionKey)) return;
+        if (grid[row][col] == 0) return; // 0表示空格，不参与连通块计算
         if (grid[row][col] !== targetValue) return;
 
         visited.add(positionKey);
@@ -378,7 +626,6 @@ export class GuideManager extends Component {
         return graph;
     }
 
-
     /** DFS构建路径 */
     private dfsBuildPath(x: number, y: number, graph: Map<string, [number, number][]>, path: [number, number][], visited: Set<string>) {
         const key = `${x},${y}`;
@@ -396,4 +643,5 @@ export class GuideManager extends Component {
             }
         }
     }
+    //#endregion
 }

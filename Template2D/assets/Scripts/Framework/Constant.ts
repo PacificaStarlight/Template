@@ -1,7 +1,7 @@
 /** 游戏状态 */
 enum GAME_RUN_STATE {
     RUNNING = 0,
-    TESTING = 1,
+    TESTING_GAMEOVER = 1,
 }
 
 /** 移动类型 */
@@ -46,14 +46,8 @@ enum AUDIO_TYPE {
 
     SUCCESS_SFX = 'Audios/success_SFX', // 成功音效
     FAIL_SFX = 'Audios/fail_SFX', // 失败音效
-
-    POS_SFX_1 = 'Audios/pos_SFX_1', // 积极反馈音效1
     POS_SFX_SUCCESS = 'Audios/pos_SFX_success', // 积极反馈音效 - 成功
-
-    NEG_SFX_1 = 'Audios/neg_SFX_1', // 消极反馈音效1
     NEG_SFX_FAIL = 'Audios/neg_SFX_fail',   // 消极反馈音效 - 失败
-
-    TIP_SFX_1 = 'Audios/tip_SFX_1', // 提示音效1
     TIP_SFX_DU = 'Audios/tip_SFX_du',   // 提示音效 - 嘟声
 }
 
@@ -65,7 +59,6 @@ export enum BLOCK_TYPE {
 /** 资源路径 */
 export enum RES_PATH {
     BLOCK = 'Prefabs/Blocks',
-    BISCUIT = 'Prefabs/Biscuit',
     PARTICLE = 'Prefabs/Particle',
 }
 
@@ -80,6 +73,9 @@ export class Constant {
 
     /** 事件名字 */
     public static EVENT_TYPE = EVENT_TYPE;
+
+    /** 资源路径 */
+    public static RES_PATH = RES_PATH;
 
     /** 动画名称 */
     public static ANIM_CLIP = ANIM_CLIP;

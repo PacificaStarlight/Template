@@ -59,6 +59,15 @@ export class InputManager extends Component {
         this.initBlocks(); // 初始化块
         console.log(this.board);
     }
+    onDestroy() {
+        this.cancelListening();
+        EventManager.off(Constant.EVENT_TYPE.INIT_BLOCKS, this.initBlocks, this);
+        EventManager.off(Constant.EVENT_TYPE.PLAY_BGM, this.playBGM, this);
+    }
+
+
+    update(deltaTime: number) {
+    }
 
     // 初始化块
     public initBlocks() {
@@ -70,16 +79,9 @@ export class InputManager extends Component {
         });
         console.log(this.block);
     }
+    //#endregion
 
-    update(deltaTime: number) {
-    }
-
-    onDisable() {
-        this.cancelListening();
-        EventManager.off(Constant.EVENT_TYPE.INIT_BLOCKS, this.initBlocks, this);
-        EventManager.off(Constant.EVENT_TYPE.PLAY_BGM, this.playBGM, this);
-    }
-
+    //#region 触摸事件 Touch
     // 触摸开始事件
     onTouchStart(event: EventTouch) {
         // console.log('开始触摸');
@@ -220,7 +222,9 @@ export class InputManager extends Component {
             this.moveBlock(this.startParent, this.startPos);
         }
     }
+    //#endregion
 
+    //#region 触摸时的操作
     // 尝试移动
     private TryToMove(node: Node, dir: number) {
 
@@ -256,7 +260,9 @@ export class InputManager extends Component {
     private moveBlock(newParent: Node, newPos: Vec3) {
 
     }
+    //#endregion
 
+    //#region 触摸结束的操作
     // 检查是否胜利
     private checkWin() {
         if (this.isOver) {
@@ -277,6 +283,7 @@ export class InputManager extends Component {
         // this.curChooseNode.getComponent(Animation).play(); // 播放移动失败动画
         AudioManager.playOneShot(Constant.AUDIO_TYPE.NEG_SFX_FAIL); // 播放移动失败音效
     }
+    //#endregion
 
     /** 游戏结束 */
     private gameOver(isWin: boolean = false) {
