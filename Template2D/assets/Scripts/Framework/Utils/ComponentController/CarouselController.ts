@@ -1,6 +1,4 @@
-import { _decorator, Component, Node, Sprite, SpriteFrame, color, tween, Color, Animation } from 'cc';
-import { EventManager } from '../../Common/Event/EventCenter';
-import { Constant } from '../../Constant';
+import { _decorator, Component, Node, Sprite, SpriteFrame, Animation } from 'cc';
 const { ccclass, property } = _decorator;
 
 @ccclass('CarouselController')

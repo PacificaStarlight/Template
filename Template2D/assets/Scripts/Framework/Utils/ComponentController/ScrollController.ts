@@ -1,30 +1,32 @@
-import { _decorator, CCBoolean, CCFloat, Component, instantiate, Node, randomRangeInt, ScrollView, Tween, UITransform, v2, v3 } from 'cc';
+import { _decorator, CCFloat, Component, instantiate, Node, randomRangeInt, ScrollView, Tween, UITransform, v2, v3 } from 'cc';
 const { ccclass, property } = _decorator;
 
 @ccclass('ScrollController')
 export class ScrollController extends Component {
     @property({ type: ScrollView, tooltip: "滚动组件" })
     private scrollView: ScrollView = null;
+
     @property({ type: Node, tooltip: "滚动内容节点" })
     public content: Node = null;
-    @property({ type: CCFloat, tooltip: "目标节点" })
-    public targetIndex: number = 1; // 目标索引
+
     @property({ type: CCFloat, tooltip: "每个选项的高度" })
     private itemHeight: number = 100; // 每个选项的高度
+
     @property({ type: CCFloat, tooltip: "选项之间的间隔" })
     private spacing: number = 10; // 选项之间的间隔
+
     @property({ type: CCFloat, tooltip: "滚动圈数" })
     private circles: number = 3;    // 滚动的圈数
-    @property({ type: CCFloat, tooltip: "滚动速度" })
-    private rollSpeed: number = 400;
-    @property({ type: CCFloat, tooltip: "加速速度" })
-    private accelSpeed: number = 10;
-    @property({ type: CCFloat, tooltip: "最大速度" })
-    private maxSpeed: number = 5000;
+
     @property({ tooltip: "是否随机初始位置" })
     private isRandomPos: boolean = false;
 
-    private itemCount: number = 5; // 固定节点
+    private rollSpeed: number = 1000;
+    private accelSpeed: number = 200;
+    private maxSpeed: number = 3000;
+    private originalSpeed: number = 0;
+    public targetIndex: number = 0; // 目标索引
+    private itemCount: number = 10; // 固定节点
     private repeatCount: number = 3;            // 重复内容的次数，确保无缝循环
     private contentHeight: number = 0;          // 一个循环的高度
     private isTurning: boolean = false;         // 是否正在转动
@@ -35,7 +37,10 @@ export class ScrollController extends Component {
     private stopCallback: (() => void) | null = null;
 
     onLoad() {
+        this.itemCount = this.content.children.length; // 获取内容节点数
         this.contentHeight = (this.itemCount) * (this.itemHeight + this.spacing);
+        // console.log('--------------itemCount: ' + this.itemCount);
+        // console.log('--------------contentHeight: ' + this.contentHeight);
         this.initContent(); // 初始化内容
     }
 
@@ -44,6 +49,7 @@ export class ScrollController extends Component {
         this.scrollView.enabled = false;
         this.itemCount = this.content.children.length;
         this.curCircles = this.circles; // 初始滚动圈数
+        this.originalSpeed = this.rollSpeed;
     }
 
     /** 滚动信息 */
@@ -57,7 +63,7 @@ export class ScrollController extends Component {
         console.log('内容节点数：' + this.itemCount);
     }
 
-    // 初始化内容方法
+    /** 初始化内容方法 */
     private initContent() {
         //设置高
         this.content.getComponent(UITransform).height = this.contentHeight * 3; // 3圈高度
@@ -74,11 +80,14 @@ export class ScrollController extends Component {
         this.content.children.forEach((item) => {
             this.itemScale.push(item);
         }); // 存储每个item的缩放比例
-        // console.log(this.content.children);
+
+        // console.log(this.content.children.length);
+        // console.log(this.content.getComponent(UITransform).height);
+        // console.log(this.scrollView.node.getComponent(UITransform).height);
     }
 
     /** 设置随机高度位置 */
-    public randomPosition() {
+    private randomPosition() {
         if (!this.isRandomPos) return;
         // 对齐初始位置
         this.scrollView.scrollToOffset(v2(0, this.contentHeight), 0);
@@ -99,6 +108,9 @@ export class ScrollController extends Component {
         this.isTurning = true;
         this.isDecelerating = false;
         this.targetIndex = targetIndex;
+
+        this.rollSpeed = this.originalSpeed;
+
         this.unschedule(this.updateRoll); // 取消之前的调度
         this.schedule(this.updateRoll, 0); // 每帧执行滚动更新
         this.stopCallback = onComplete; // 保存回调函数
@@ -139,8 +151,15 @@ export class ScrollController extends Component {
                 this.scrollView.node.off('scroll-ended', this.onScrollEnd, this);
                 this.scrollView.node.once('scroll-ended', this.onScrollEnd, this);
                 let targetY = this.targetIndex * (this.itemHeight + this.spacing);
+
+                // 计算动态滚动时间，根据距离调整
+                const currentY = currentOffset.y;
+                const distance = Math.abs(targetY - currentY);
+                // 根据距离计算时间，保证速度相对一致
+                const scrollTime = Math.max(0.2, Math.min(0.5, distance / this.rollSpeed));
+
                 // 执行最终定位滚动
-                this.scrollView.scrollToOffset(v2(0, targetY), 0.8); // 3秒内滚动到目标位置
+                this.scrollView.scrollToOffset(v2(0, targetY), scrollTime); // 滚动到目标位置
             }
             // 向上滚动超过后复制区域（y >= 2*contentHeight）：重置到上一圈
             else if (currentOffset.y >= 2 * this.contentHeight) {
@@ -196,6 +215,8 @@ export class ScrollController extends Component {
     private checkRollStop() {
         this.isTurning = false;
         if (ScrollController.stopCircles >= 3) {
+            ScrollController.stopCircles = 0;
+            console.log('----------------------------滚动停止----------------------------');
         }
     }
 }

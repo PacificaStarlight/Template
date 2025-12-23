@@ -7,37 +7,37 @@ export class LocationImage extends Component {
 
     @property(SpriteFrame)
     enSprite: SpriteFrame;
-    @property()
+    @property
     enSize: number = -1;
 
     @property(SpriteFrame)
     jpSprite: SpriteFrame;
-    @property()
+    @property
     jpSize: number = -1;
 
     @property(SpriteFrame)
     krSprite: SpriteFrame;
-    @property()
+    @property
     krSize: number = -1;
 
     @property(SpriteFrame)
     cnSprite: SpriteFrame;
-    @property()
+    @property
     cnSize: number = -1;
 
     @property(SpriteFrame)
     twSprite: SpriteFrame;
-    @property()
+    @property
     twSize: number = -1;
 
     @property(SpriteFrame)
     deSprite: SpriteFrame;
-    @property()
+    @property
     deSize: number = -1;
 
     @property(SpriteFrame)
     frSprite: SpriteFrame;
-    @property()
+    @property
     frSize: number = -1;
 
     @property(Sprite)

@@ -6,70 +6,70 @@ const { ccclass, property } = _decorator;
 export class LocationText extends Component {
 
     /** 英文文本 */
-    @property({ type: String, tooltip: "英文" })
+    @property({ tooltip: "英文" })
     ENText = "";
 
     @property
     ENSize = -1;
 
     /** 日文文本 */
-    @property({ type: String, tooltip: "日文" })
+    @property({ tooltip: "日文" })
     JPText = "";
 
     @property
     JPSize = -1;
 
     /** 韩文文本 */
-    @property({ type: String, tooltip: "韩文" })
+    @property({ tooltip: "韩文" })
     KRText = "";
 
     @property
     KRSize = -1;
 
     /** 中文简体文本 */
-    @property({ type: String, tooltip: "中文简体" })
+    @property({ tooltip: "中文简体" })
     CNSText = "";
 
     @property
     CNSSize = -1;
 
     /** 中文繁体文本 */
-    @property({ type: String, tooltip: "中文繁体" })
+    @property({ tooltip: "中文繁体" })
     CNTText = "";
 
     @property
     CNTSize = -1;
 
     /** 德文文本 */
-    @property({ type: String, tooltip: "德文" })
+    @property({ tooltip: "德文" })
     DEText = "";
 
     @property
     DESize = -1;
 
     /** 法文文本 */
-    @property({ type: String, tooltip: "法文" })
+    @property({ tooltip: "法文" })
     FRText = "";
 
     @property
     FRSize = -1;
 
     /** 西班牙文文本 */
-    @property({ type: String, tooltip: "西班牙文" })
+    @property({ tooltip: "西班牙文" })
     ESText = "";
 
     @property
     ESSize = -1;
 
     /** 葡萄牙文文本 */
-    @property({ type: String, tooltip: "葡萄牙文" })
+    @property({ tooltip: "葡萄牙文" })
     PTText = "";
 
     @property
     PTSize = -1;
 
     /** 俄文文本 */
-    @property({ type: String, tooltip: "俄文" })
+    @property({ tooltip: "俄文" })
     RUText = "";
 
     @property

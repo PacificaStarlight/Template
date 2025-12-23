@@ -22,20 +22,11 @@ export class CameraController extends Component {
     // 是否正在移动
     private _isMoving: boolean = true;
 
+    //#region 生命周期函数
     public static instance: CameraController = null; // 单例
     onLoad() {
         CameraController.instance = this;
-        // 如果没有在属性检查器中赋值，则尝试获取当前节点上的Camera组件
-        if (!this.mainCamera) {
-            this.mainCamera = this.getComponent(Camera);
-        }
-        // 如果还是没有，则查找场景中的主摄像机
-        if (!this.mainCamera) {
-            let cameraNode = find('Main Camera');
-            if (cameraNode) {
-                this.mainCamera = cameraNode.getComponent(Camera);
-            }
-        }
+        this.getCamera();
         view.on('canvas-resize', this.lockEndPos, this);
     }
 
@@ -45,24 +36,25 @@ export class CameraController extends Component {
     }
 
     start() {
-        this.getCamera();
-        this.node.setWorldPosition(this.followNode.position);
+        // this.getCamera();
+        // this.node.setWorldPosition(this.followNode.position);
     }
     update(deltaTime: number) {
     }
 
-    lateUpdate(deltaTime: number) {
-        if (this._isMoving) return; // 如果正在移动，则不执行跟随逻辑
-        // 1. 检查目标是否存在
-        if (!this.followNode) {
-            return;
-        }
-        // 2. 获取目标节点的世界坐标
-        this.followNode.getWorldPosition(this._tempPos);
-        // 3. 只将目标的x和y坐标赋值给摄像机，保持摄像机原有的z轴坐标
-        this.node.setWorldPosition(this._tempPos.x, this._tempPos.y, this.node.position.z);
-        this.UI_LayoutTop.setWorldPosition(this._tempPos.x, this._tempPos.y, 0);
-    }
+    // lateUpdate(deltaTime: number) {
+    //     if (this._isMoving) return; // 如果正在移动，则不执行跟随逻辑
+    //     // 1. 检查目标是否存在
+    //     if (!this.followNode) {
+    //         return;
+    //     }
+    //     // 2. 获取目标节点的世界坐标
+    //     this.followNode.getWorldPosition(this._tempPos);
+    //     // 3. 只将目标的x和y坐标赋值给摄像机，保持摄像机原有的z轴坐标
+    //     this.node.setWorldPosition(this._tempPos.x, this._tempPos.y, this.node.position.z);
+    //     this.UI_LayoutTop.setWorldPosition(this._tempPos.x, this._tempPos.y, 0);
+    // }
+    //#endregion
 
     //#region 摄像机初始化
     /** 获取相机 */

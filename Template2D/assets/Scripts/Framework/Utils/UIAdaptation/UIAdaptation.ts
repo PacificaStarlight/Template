@@ -7,12 +7,10 @@ export enum UIAdaptationType {
     Always,
     /** 保持宽高比 */
     KeepAspectRatio,
-    /** 根据宽度缩放背景 */
-    ScaleBgAccordingToWidth,
-    /** 根据高度缩放背景 */
-    ScaleBgAccordingToHeight,
     /** 背景适配 */
-    BgAdaptation,
+    UITransfromAdaptation,
+    /** 适配背景 */
+    ScaleAdaptation,
 }
 
 @ccclass('UIAdaptation')
@@ -34,6 +32,7 @@ export class UIAdaptation extends Component {
         const uiTransform = this.node.getComponent(UITransform);
         if (uiTransform) {
             this.originalSize.set(uiTransform.width, uiTransform.height);
+            console.log(this.node.name + '原始尺寸:', this.originalSize);
         }
         // 初始适配
         this.adaptBackground();
@@ -90,43 +89,68 @@ export class UIAdaptation extends Component {
                     uiTransform.setContentSize(visibleSize.width * ratioY, visibleSize.height * ratioX);
                 }
                 break;
-            case UIAdaptationType.ScaleBgAccordingToWidth:
-                if (view.getVisibleSize().width > this.node.getComponent(UITransform).width) {
-                    let ratio = view.getVisibleSize().width / this.node.getComponent(UITransform).width; // 计算缩放比例
-                    this.node.getComponent(UITransform).setContentSize(this.node.getComponent(UITransform).width * ratio,
-                        this.node.getComponent(UITransform).height * ratio);
-                }
-                break;
-            case UIAdaptationType.ScaleBgAccordingToHeight:
-                this.node.getComponent(UITransform).setContentSize(visibleSize.width * ratioY, visibleSize.height * ratioY);
-                if (view.getVisibleSize().height > this.node.getComponent(UITransform).height) {
-                    let ratio = view.getVisibleSize().height / this.node.getComponent(UITransform).height; // 计算缩放比例
-                    this.node.getComponent(UITransform).setContentSize(this.node.getComponent(UITransform).width * ratio,
-                        this.node.getComponent(UITransform).height * ratio);
-                }
-                break;
-            case UIAdaptationType.BgAdaptation:
+            case UIAdaptationType.UITransfromAdaptation:
                 // 基于原始尺寸进行缩放，避免累积效应
-                let ratioBg = 1;
-                let imageSide = 0;
-
+                let ratioBg = 1; // 缩放比例
                 if (this.originalSize.width >= this.originalSize.height) {
-                    imageSide = this.originalSize.height;
+                    console.log(this.node.name + '宽图' + this.originalSize.width + ' ' + this.originalSize.height);
+                    if (visibleSize.width >= visibleSize.height) {
+                        // 横屏情况
+                        ratioBg = visibleSize.width / this.originalSize.width;
+                        console.log(this.node.name + '横屏情况');
+                    } else {
+                        // 竖屏情况
+                        ratioBg = visibleSize.height / this.originalSize.height;
+                        console.log(this.node.name + '竖屏情况');
+                    }
                 } else {
-                    imageSide = this.originalSize.width;
+                    console.log(this.node.name + '高图' + this.originalSize.width + ' ' + this.originalSize.height);
+                    if (visibleSize.width >= visibleSize.height) {
+                        // 横屏情况
+                        ratioBg = visibleSize.width / this.originalSize.width;
+                        console.log(this.node.name + '横屏情况');
+                    } else {
+                        // 竖屏情况
+                        ratioBg = visibleSize.height / this.originalSize.height;
+                        console.log(this.node.name + '竖屏情况');
+                    }
                 }
 
-                if (visibleSize.width >= visibleSize.height) {
-                    // 横屏情况
-                    ratioBg = visibleSize.width / imageSide;
-                } else {
-                    // 竖屏情况
-                    ratioBg = visibleSize.height / imageSide;
-                }
                 // console.log('缩放比例:', ratioBg);
                 // 使用原始尺寸乘以比率，而不是当前尺寸
                 uiTransform.width = this.originalSize.width * ratioBg;
                 uiTransform.height = this.originalSize.height * ratioBg;
+                break;
+            case UIAdaptationType.ScaleAdaptation:
+                // 基于原始尺寸进行缩放，避免累积效应
+                if (this.originalSize.width >= this.originalSize.height) {
+                    console.log(this.node.name + '宽图' + this.originalSize.width + ' ' + this.originalSize.height);
+                    if (visibleSize.width >= visibleSize.height) {
+                        // 横屏情况
+                        ratioBg = visibleSize.width / this.originalSize.width;
+                        console.log(this.node.name + '横屏情况');
+                    } else {
+                        // 竖屏情况
+                        ratioBg = visibleSize.height / this.originalSize.height;
+                        console.log(this.node.name + '竖屏情况');
+                    }
+                } else {
+                    console.log(this.node.name + '高图' + this.originalSize.width + ' ' + this.originalSize.height);
+                    if (visibleSize.width >= visibleSize.height) {
+                        // 横屏情况
+                        ratioBg = visibleSize.width / this.originalSize.width;
+                        console.log(this.node.name + '横屏情况');
+                    } else {
+                        // 竖屏情况
+                        ratioBg = visibleSize.height / this.originalSize.height;
+                        console.log(this.node.name + '竖屏情况');
+                    }
+                }
+
+
+                // console.log('缩放比例:', ratioBg);
+                // 使用原始尺寸乘以比率，而不是当前尺寸
+                this.node.setScale(ratioBg, ratioBg);
                 break;
         }
 

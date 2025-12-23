@@ -1,5 +1,5 @@
 import { _decorator, Component, Node, Animation, Vec2, Vec3, tween, Tween } from 'cc';
-import { InputManager } from '../../InputManager';
+import { InputManager } from '../../../Common/InputManager';
 const { ccclass, property } = _decorator;
 @ccclass('GuideManager')
 export class GuideManager extends Component {
@@ -22,50 +22,127 @@ export class GuideManager extends Component {
     }
 
     onEnable() {
-        if (!this.isInitialized) return;
+        // if (!this.isInitialized) return;
+        console.log('******************************************显示引导');
         // 获取当前棋盘的数据
         this.getArray();
         // 寻找可合体的方块
         this.checkDestroyBlock();
     }
 
-    init() {
-        this.isInitialized = true;
-        // 获取当前棋盘的数据
-        this.getArray();
-        // 寻找可合体的方块
-        this.checkDestroyBlock();
-    }
+    // init() {
+    //     this.isInitialized = true;
+    //     this.node.active = false;
+    //     // // 获取当前棋盘的数据
+    //     // this.getArray();
+    //     // // 寻找可合体的方块
+    //     // this.checkDestroyBlock();
+    // }
 
     /** 获取引导数组，在显示的时候使用 */
     public getArray() {
+
         this.array = [];
-        let nodes = InputManager.instance.block;
-        // let boards = InputManager.instance.board;
-        // console.log("更新引导数组");
-        // console.log(nodes);
-        // console.log(boards);
-        for (let i = 0; i < 7; i++) {
-            this.array[i] = [];
-            this.board[i] = [];
-            for (let j = 0; j < 4; j++) {
-                this.array[i][j] = 0;
-                // this.board[i][j] = boards[i * 4 + j];
-            }
-        }
-        for (let i = 0; i < nodes.length; i++) {
-            let block = nodes[i];
-            if (block.active == false) continue;
-            // let x = block.getComponent(Block).transform.x;
-            // let y = block.getComponent(Block).transform.y;
-            // this.array[x][y] = block.getComponent(Block).blockType;
-        }
+        this.array = InputManager.instance.blockData;
+        this.board = InputManager.instance.boardData;
         console.log(this.array);
         console.log(this.board);
     }
 
+    checkDestroyBlock() {
+        // 查找第一对相同的、不为零且小于999的数字
+        const result = this.findFirstValidPair(this.array);
+        if (result) {
+            console.log("找到符合条件的数字对:", result);
+            // 处理找到的结果
+            let pos0 = result.positions[0];
+            let pos1 = result.positions[1];
+            let targetPos0 = this.board[pos0[0]][pos0[1]].worldPosition.clone();
+            let targetPos1 = this.board[pos1[0]][pos1[1]].worldPosition.clone();
+            this.posArray = [];
+            this.posArray.push(targetPos0);
+            this.posArray.push(targetPos1);
+            this.updateGuidePos();
+        } else {
+            console.log("未找到符合条件的数字对");
+            // 可以在这里调用其他查找逻辑，比如之前的 checkTwoOrMoreBlock()
+        }
+    }
+
+    /**
+     * 查找第一对相同的、不为零且小于999的数字（优先查找数值大的）
+     * @param grid 当前游戏网格数据
+     * @returns 第一个满足条件的配对，如果没找到则返回null
+     */
+    public findFirstValidPair(grid: number[][]): { value: number, positions: [number, number][] } | null {
+        const rows = grid.length;
+        const cols = grid[0].length;
+
+        // 定义需要特殊处理的数字
+        const specialNumbers = new Set([2, 4, 6, 8, 11, 15]);
+
+        // 创建一个存储所有有效数字及其位置的映射
+        const numberPositionsMap = new Map<number, [number, number][]>();
+
+        // 收集所有有效数字（不为零且小于999）及其位置
+        for (let i = 0; i < rows; i++) {
+            for (let j = 0; j < cols; j++) {
+                const currentValue = grid[i][j];
+
+                // 检查当前值是否符合要求（不为零且小于999）
+                if (currentValue !== 0 && currentValue < 999) {
+                    if (!numberPositionsMap.has(currentValue)) {
+                        numberPositionsMap.set(currentValue, []);
+                    }
+                    numberPositionsMap.get(currentValue)!.push([i, j]);
+                }
+            }
+        }
+
+        // 获取所有唯一数字并按降序排序
+        const uniqueNumbers = Array.from(numberPositionsMap.keys()).sort((a, b) => b - a);
+
+        // 按照从大到小的顺序查找第一对相同数字
+        for (const number of uniqueNumbers) {
+            // 如果遇到特殊数字，切换为点击动画并返回null
+            if (specialNumbers.has(number)) {
+                const positions = numberPositionsMap.get(number)!;
+                // 传入第一个位置作为点击位置
+                const firstPos = positions[0];
+                const worldPos = this.board[firstPos[0]][firstPos[1]].worldPosition.clone();
+                this.clickPoints(worldPos);
+                return null;
+            }
+
+            const positions = numberPositionsMap.get(number)!;
+
+            // 如果该数字至少出现了两次，则返回第一对位置
+            if (positions.length >= 2) {
+                return {
+                    value: number,
+                    positions: [positions[0], positions[1]]
+                };
+            }
+        }
+
+        return null; // 没有找到符合条件的数字对
+    }
+
+    // 切换引导状态为点击动画
+    private clickPoints(pos: Vec3) {
+        console.log("遇到特殊数字，切换为点击动画");
+        Tween.stopAllByTarget(this.node); // 停止所有与该节点相关的tween动画
+        this.node.worldPosition = pos;
+        tween(this.node.children[0])
+            .to(0.5, { angle: -15 }) // 移动到下一个位
+            .to(0.5, { angle: 15 }) // 移动到下一个位
+            .union()
+            .repeatForever() // 重复动画
+            .start(); // 开始动画
+    }
+
     // 检查是否有三个或以上的相邻数字
-    public checkDestroyBlock() {
+    public checkTwoOrMoreBlock() {
         const result = this.findTwoOrMoreAdjacent(this.array);
         console.log("检查结果：", result);
         if (result == null) {
@@ -105,6 +182,8 @@ export class GuideManager extends Component {
         let index = 0;
         this.node.worldPosition = this.posArray[index++];
         Tween.stopAllByTarget(this.node); // 停止所有与该节点相关的tween动画
+        Tween.stopAllByTarget(this.node.children[0]); // 停止所有与该节点相关的tween动画
+        this.node.children[0].angle = 0;
         this.moveToPoints(this.posArray, index);  // 移动到下一个位置
     }
 

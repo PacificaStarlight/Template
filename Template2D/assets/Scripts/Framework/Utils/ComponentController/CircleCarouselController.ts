@@ -1,6 +1,4 @@
 import { _decorator, Component, instantiate, Node, tween, Vec3, Animation, CCFloat } from 'cc';
-import { EventManager } from '../../Common/Event/EventCenter';
-import { Constant } from '../../Constant';
 
 const { ccclass, property } = _decorator;
 

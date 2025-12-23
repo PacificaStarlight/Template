@@ -1,5 +1,6 @@
 import { _decorator, Component, Node, Animation, AnimationClip, resources, AnimationState, tween, Vec3, Label, Tween, v3 } from 'cc';
-import { Tools } from '../../Utils/Tools';
+import { Tools } from '../../Utils/Tools/Tools';
+
 // AnimManager.ts
 
 interface IAnimInfo {
